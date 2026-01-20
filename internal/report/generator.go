@@ -96,12 +96,7 @@ func (g *Generator) formatReport(date time.Time, stats *storage.Stats, topUsers 
 func (g *Generator) GenerateStats(days int) (string, error) {
 	since := time.Now().AddDate(0, 0, -days)
 
-	stats, err := g.storage.GetFailedStats(since)
-	if err != nil {
-		return "", err
-	}
-
-	successCount, err := g.storage.GetSuccessCount(since)
+	stats, err := g.storage.GetOverallStats(since)
 	if err != nil {
 		return "", err
 	}
@@ -109,8 +104,8 @@ func (g *Generator) GenerateStats(days int) (string, error) {
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("SSH Statistics (last %d days)\n", days))
 	buf.WriteString(fmt.Sprintf("Server: %s\n\n", g.serverName))
-	buf.WriteString(fmt.Sprintf("Successful logins: %d\n", successCount))
-	buf.WriteString(fmt.Sprintf("Failed attempts: %d\n", stats.TotalAttempts))
+	buf.WriteString(fmt.Sprintf("Successful logins: %d\n", stats.SuccessCount))
+	buf.WriteString(fmt.Sprintf("Failed attempts: %d\n", stats.FailedCount))
 	buf.WriteString(fmt.Sprintf("Unique IPs: %d\n", stats.UniqueIPs))
 	buf.WriteString(fmt.Sprintf("Unique usernames: %d\n", stats.UniqueUsernames))
 

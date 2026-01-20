@@ -225,6 +225,32 @@ func (s *Storage) GetSuccessCount(since time.Time) (int, error) {
 	return count, err
 }
 
+type OverallStats struct {
+	SuccessCount    int
+	FailedCount     int
+	UniqueIPs       int
+	UniqueUsernames int
+}
+
+func (s *Storage) GetOverallStats(since time.Time) (*OverallStats, error) {
+	query := `
+		SELECT
+			COUNT(CASE WHEN event_type = 'success' THEN 1 END) as success,
+			COUNT(CASE WHEN event_type = 'failure' THEN 1 END) as failed,
+			COUNT(DISTINCT ip) as unique_ips,
+			COUNT(DISTINCT username) as unique_usernames
+		FROM ssh_events
+		WHERE timestamp >= ?
+	`
+
+	var stats OverallStats
+	err := s.db.QueryRow(query, since).Scan(&stats.SuccessCount, &stats.FailedCount, &stats.UniqueIPs, &stats.UniqueUsernames)
+	if err != nil {
+		return nil, err
+	}
+	return &stats, nil
+}
+
 func (s *Storage) Cleanup(retentionDays int) (int64, error) {
 	cutoff := time.Now().AddDate(0, 0, -retentionDays)
 	result, err := s.db.Exec(`DELETE FROM ssh_events WHERE timestamp < ?`, cutoff)
