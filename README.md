@@ -10,6 +10,7 @@ SSH login monitor for Debian-like Linux systems. Sends Telegram notifications fo
 - GeoIP lookup for IP geolocation (optional)
 - SQLite storage with configurable retention
 - Systemd integration
+- Self-upgrade from GitHub releases
 
 ## Requirements
 
@@ -37,6 +38,17 @@ After installation, check the service status:
 ```bash
 sudo systemctl status oxiwatch
 ```
+
+## Upgrading
+
+After the initial installation, oxiwatch can upgrade itself to the latest release:
+
+```bash
+sudo oxiwatch upgrade
+sudo systemctl restart oxiwatch
+```
+
+Daily reports will notify you when a new version is available.
 
 ## Installation (from source)
 
@@ -127,6 +139,9 @@ oxiwatch config show
 
 # Send test Telegram message
 oxiwatch send-test
+
+# Self-upgrade to latest release
+sudo oxiwatch upgrade
 
 # Show version
 oxiwatch version
