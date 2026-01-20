@@ -6,17 +6,20 @@ import (
 	"time"
 
 	"github.com/oxisoft/oxiwatch/internal/storage"
+	"github.com/oxisoft/oxiwatch/internal/version"
 )
 
 type Generator struct {
-	storage    *storage.Storage
-	serverName string
+	storage        *storage.Storage
+	serverName     string
+	currentVersion string
 }
 
-func NewGenerator(storage *storage.Storage, serverName string) *Generator {
+func NewGenerator(storage *storage.Storage, serverName, currentVersion string) *Generator {
 	return &Generator{
-		storage:    storage,
-		serverName: serverName,
+		storage:        storage,
+		serverName:     serverName,
+		currentVersion: currentVersion,
 	}
 }
 
@@ -45,7 +48,13 @@ func (g *Generator) GenerateDailyReport(date time.Time) (string, error) {
 		return "", err
 	}
 
-	return g.formatReport(date, stats, topUsers, topIPs, successCount), nil
+	reportText := g.formatReport(date, stats, topUsers, topIPs, successCount)
+
+	if g.currentVersion != "" {
+		reportText += g.checkVersionUpdate()
+	}
+
+	return reportText, nil
 }
 
 func (g *Generator) formatReport(date time.Time, stats *storage.Stats, topUsers []storage.UsernameCount, topIPs []storage.IPCount, successCount int) string {
@@ -188,4 +197,22 @@ func replaceAll(s, old, new string) string {
 		}
 	}
 	return result.String()
+}
+
+func (g *Generator) checkVersionUpdate() string {
+	checker := version.NewChecker(g.currentVersion)
+	available, latest, err := checker.IsUpdateAvailable()
+	if err != nil {
+		return ""
+	}
+
+	if !available {
+		return ""
+	}
+
+	var buf bytes.Buffer
+	buf.WriteString("\n⬆️ *Update Available*\n")
+	buf.WriteString(fmt.Sprintf("Current: %s \\| Latest: %s\n", escapeMarkdown(g.currentVersion), escapeMarkdown(latest)))
+	buf.WriteString("Run: `oxiwatch upgrade`\n")
+	return buf.String()
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/oxisoft/oxiwatch/internal/notifier"
 	"github.com/oxisoft/oxiwatch/internal/report"
 	"github.com/oxisoft/oxiwatch/internal/storage"
+	"github.com/oxisoft/oxiwatch/internal/version"
 )
 
 // Version is set at build time via -ldflags "-X main.Version=x.y.z"
@@ -42,6 +43,8 @@ func main() {
 		runConfig(configPath)
 	case "send-test":
 		runSendTest(configPath)
+	case "upgrade":
+		runUpgrade()
 	case "version":
 		fmt.Printf("oxiwatch version %s\n", Version)
 	case "help", "-h", "--help":
@@ -67,6 +70,7 @@ Commands:
   config validate              Validate configuration
   config show                  Show active configuration
   send-test                    Send test Telegram message
+  upgrade                      Self-upgrade to latest release
   version                      Show version
   help                         Show this help
 
@@ -91,7 +95,7 @@ func runDaemon(configPath string) {
 
 	logger := setupLogger(cfg.LogLevel)
 
-	d, err := daemon.New(cfg, logger)
+	d, err := daemon.New(cfg, logger, Version)
 	if err != nil {
 		fatal("failed to initialize daemon: %v", err)
 	}
@@ -118,7 +122,7 @@ func runStats(configPath string) {
 	}
 	defer store.Close()
 
-	gen := report.NewGenerator(store, cfg.ServerName)
+	gen := report.NewGenerator(store, cfg.ServerName, Version)
 
 	switch os.Args[2] {
 	case "today":
@@ -287,12 +291,39 @@ func runSendTest(configPath string) {
 		fatal("invalid config: %v", err)
 	}
 
-	telegram := notifier.NewTelegram(cfg.TelegramBotToken, cfg.TelegramChatID, cfg.ServerName)
+	telegram, err := notifier.NewTelegram(cfg.TelegramBotToken, cfg.TelegramChatID, cfg.ServerName)
+	if err != nil {
+		fatal("failed to create telegram notifier: %v", err)
+	}
 	if err := telegram.SendTestMessage(); err != nil {
 		fatal("failed to send test message: %v", err)
 	}
 
 	fmt.Println("Test message sent successfully")
+}
+
+func runUpgrade() {
+	checker := version.NewChecker(Version)
+
+	fmt.Println("Checking for updates...")
+	available, latest, err := checker.IsUpdateAvailable()
+	if err != nil {
+		fatal("failed to check for updates: %v", err)
+	}
+
+	if !available {
+		fmt.Printf("Already at latest version (%s)\n", Version)
+		return
+	}
+
+	fmt.Printf("Upgrading from %s to %s...\n", Version, latest)
+
+	if err := checker.Upgrade(); err != nil {
+		fatal("upgrade failed: %v", err)
+	}
+
+	fmt.Printf("Successfully upgraded to v%s\n", latest)
+	fmt.Println("Restart the service: sudo systemctl restart oxiwatch")
 }
 
 func setupLogger(level string) *slog.Logger {

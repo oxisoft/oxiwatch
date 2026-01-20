@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -28,12 +29,18 @@ type Daemon struct {
 	geoip     *geoip.Resolver
 	geoUpdate *geoip.Updater
 	report    *report.Generator
+	version   string
 }
 
-func New(cfg *config.Config, logger *slog.Logger) (*Daemon, error) {
+func New(cfg *config.Config, logger *slog.Logger, version string) (*Daemon, error) {
 	store, err := storage.New(cfg.DatabasePath)
 	if err != nil {
 		return nil, err
+	}
+
+	telegram, err := notifier.NewTelegram(cfg.TelegramBotToken, cfg.TelegramChatID, cfg.ServerName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create telegram notifier: %w", err)
 	}
 
 	d := &Daemon{
@@ -41,10 +48,11 @@ func New(cfg *config.Config, logger *slog.Logger) (*Daemon, error) {
 		logger:    logger,
 		storage:   store,
 		journal:   journal.New(logger),
-		telegram:  notifier.NewTelegram(cfg.TelegramBotToken, cfg.TelegramChatID, cfg.ServerName),
+		telegram:  telegram,
 		scheduler: scheduler.New(logger),
 		geoUpdate: geoip.NewUpdater(cfg.GeoIPDatabasePath, logger),
-		report:    report.NewGenerator(store, cfg.ServerName),
+		report:    report.NewGenerator(store, cfg.ServerName, version),
+		version:   version,
 	}
 
 	if cfg.GeoIPEnabled {
