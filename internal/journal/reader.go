@@ -76,7 +76,7 @@ func (r *Reader) parseJournalLine(line string) *parser.SSHEvent {
 		return nil
 	}
 
-	if entry.SyslogIdentifier != "sshd" {
+	if entry.SyslogIdentifier != "sshd" && entry.SyslogIdentifier != "sshd-session" {
 		return nil
 	}
 
