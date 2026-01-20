@@ -15,7 +15,8 @@ import (
 	"github.com/oxisoft/oxiwatch/internal/storage"
 )
 
-var Version = "0.1.0"
+// Version is set at build time via -ldflags "-X main.Version=x.y.z"
+var Version = "dev"
 
 func main() {
 	if len(os.Args) < 2 {

@@ -17,7 +17,28 @@ SSH login monitor for Debian-like Linux systems. Sends Telegram notifications fo
 - Linux with systemd (Debian, Ubuntu, etc.)
 - Telegram bot token and chat ID
 
-## Installation
+## Quick Install
+
+Run the following command to install oxiwatch:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/oxisoft/oxiwatch/main/scripts/install.sh | sudo bash
+```
+
+The installer will:
+- Download the latest release for your architecture
+- Ask for your Telegram bot token and chat ID
+- Ask if you want GeoIP geolocation enabled
+- Create the configuration file
+- Install and enable the systemd service
+
+After installation, check the service status:
+
+```bash
+sudo systemctl status oxiwatch
+```
+
+## Installation (from source)
 
 ```bash
 # Build

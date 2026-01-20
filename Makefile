@@ -1,6 +1,6 @@
 .PHONY: build clean test lint verify
 
-VERSION ?= 0.1.0
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null | sed 's/^v//' || echo "dev")
 LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
 
 build:
