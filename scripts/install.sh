@@ -63,9 +63,12 @@ check_tty
 echo ""
 echo "=== OxiWatch Configuration ==="
 echo ""
-read -p "Telegram Bot Token: " TELEGRAM_TOKEN < /dev/tty
-read -p "Telegram Chat ID: " TELEGRAM_CHAT_ID < /dev/tty
-read -p "Enable GeoIP lookup? [Y/n]: " GEOIP_ENABLED < /dev/tty
+echo -n "Telegram Bot Token: "
+read TELEGRAM_TOKEN < /dev/tty
+echo -n "Telegram Chat ID: "
+read TELEGRAM_CHAT_ID < /dev/tty
+echo -n "Enable GeoIP lookup? [Y/n]: "
+read GEOIP_ENABLED < /dev/tty
 GEOIP_ENABLED=${GEOIP_ENABLED:-Y}
 [[ $GEOIP_ENABLED =~ ^[Yy] ]] && GEOIP_ENABLED="true" || GEOIP_ENABLED="false"
 
@@ -116,7 +119,8 @@ echo "Binary: $INSTALL_DIR/oxiwatch"
 echo "Config: $CONFIG_DIR/config.json"
 echo "Data:   $DATA_DIR/"
 echo ""
-read -p "Start oxiwatch service now? [Y/n]: " START_NOW < /dev/tty
+echo -n "Start oxiwatch service now? [Y/n]: "
+read START_NOW < /dev/tty
 START_NOW=${START_NOW:-Y}
 if [[ $START_NOW =~ ^[Yy] ]]; then
   systemctl start oxiwatch
