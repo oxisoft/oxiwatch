@@ -313,7 +313,7 @@ func runVersion() {
 
 	if available {
 		fmt.Printf("\nUpdate available: %s -> %s\n", Version, latest)
-		fmt.Println("Run 'oxiwatch upgrade' to update")
+		fmt.Println("Run 'sudo oxiwatch upgrade' to update")
 	}
 }
 

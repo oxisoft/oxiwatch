@@ -208,6 +208,6 @@ func (g *Generator) checkVersionUpdate() string {
 	var buf bytes.Buffer
 	buf.WriteString("\n⬆️ *Update Available*\n")
 	buf.WriteString(fmt.Sprintf("Current: %s \\| Latest: %s\n", escapeMarkdown(g.currentVersion), escapeMarkdown(latest)))
-	buf.WriteString("Run: `oxiwatch upgrade`\n")
+	buf.WriteString("Run: `sudo oxiwatch upgrade`\n")
 	return buf.String()
 }
