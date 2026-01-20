@@ -1,0 +1,15 @@
+[Unit]
+Description=OxiWatch SSH Login Monitor
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/oxiwatch daemon --foreground
+Restart=always
+RestartSec=5
+User=oxiwatch
+Group=oxiwatch
+SupplementaryGroups=systemd-journal
+
+[Install]
+WantedBy=multi-user.target
