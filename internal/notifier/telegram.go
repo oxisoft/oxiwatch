@@ -78,7 +78,7 @@ func getPublicIP(url string) string {
 	return strings.TrimSpace(string(body))
 }
 
-func (t *Telegram) SendLoginAlert(event *parser.SSHEvent, country, city string) error {
+func (t *Telegram) SendLoginAlert(event *parser.SSHEvent, country, city, warning string) error {
 	location := formatLocation(event.IP, country, city)
 
 	msg := fmt.Sprintf(`🔐 <b>SSH Login Alert</b>
@@ -96,6 +96,10 @@ func (t *Telegram) SendLoginAlert(event *parser.SSHEvent, country, city string) 
 		escapeHTML(event.IP),
 		escapeHTML(location),
 	)
+
+	if warning != "" {
+		msg += fmt.Sprintf("\n\n⚠️ %s", escapeHTML(warning))
+	}
 
 	return t.send(msg)
 }

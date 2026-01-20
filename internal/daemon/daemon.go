@@ -151,6 +151,11 @@ func (d *Daemon) processEvent(event *parser.SSHEvent) {
 		}
 	}
 
+	var warning string
+	if event.EventType == parser.EventSuccess {
+		warning = d.checkLocationChange(event, country, city)
+	}
+
 	if err := d.storage.InsertEvent(event, country, city); err != nil {
 		d.logger.Error("failed to store event", "error", err)
 		return
@@ -165,7 +170,7 @@ func (d *Daemon) processEvent(event *parser.SSHEvent) {
 			"city", city,
 		)
 
-		if err := d.telegram.SendLoginAlert(event, country, city); err != nil {
+		if err := d.telegram.SendLoginAlert(event, country, city, warning); err != nil {
 			d.logger.Error("failed to send Telegram alert", "error", err)
 		}
 	} else {
@@ -175,6 +180,40 @@ func (d *Daemon) processEvent(event *parser.SSHEvent) {
 			"invalid_user", event.InvalidUser,
 		)
 	}
+}
+
+func (d *Daemon) checkLocationChange(event *parser.SSHEvent, country, city string) string {
+	lastLogin, err := d.storage.GetLastLoginForUser(event.Username)
+	if err != nil {
+		return ""
+	}
+
+	if lastLogin.IP == event.IP {
+		return ""
+	}
+
+	lastLocation := formatLocation(lastLogin.Country, lastLogin.City)
+	currentLocation := formatLocation(country, city)
+
+	if lastLocation == currentLocation {
+		return ""
+	}
+
+	if lastLocation == "" {
+		lastLocation = lastLogin.IP
+	}
+
+	return fmt.Sprintf("New location! Previous: %s (%s)", lastLocation, lastLogin.IP)
+}
+
+func formatLocation(country, city string) string {
+	if city != "" && country != "" {
+		return fmt.Sprintf("%s, %s", city, country)
+	}
+	if country != "" {
+		return country
+	}
+	return city
 }
 
 func (d *Daemon) sendDailyReport(ctx context.Context) error {

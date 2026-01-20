@@ -113,6 +113,27 @@ func (s *Storage) GetSuccessfulLogins(since time.Time) ([]SSHEventRecord, error)
 	return s.getEvents("success", since)
 }
 
+func (s *Storage) GetLastLoginForUser(username string) (*SSHEventRecord, error) {
+	query := `
+		SELECT id, timestamp, event_type, username, ip, port, method,
+		       COALESCE(country, ''), COALESCE(city, ''), invalid_user, created_at
+		FROM ssh_events
+		WHERE event_type = 'success' AND username = ?
+		ORDER BY timestamp DESC
+		LIMIT 1
+	`
+
+	var e SSHEventRecord
+	err := s.db.QueryRow(query, username).Scan(
+		&e.ID, &e.Timestamp, &e.EventType, &e.Username, &e.IP,
+		&e.Port, &e.Method, &e.Country, &e.City, &e.InvalidUser, &e.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &e, nil
+}
+
 func (s *Storage) GetFailedAttempts(since time.Time) ([]SSHEventRecord, error) {
 	return s.getEvents("failure", since)
 }
