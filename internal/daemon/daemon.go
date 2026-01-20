@@ -118,6 +118,10 @@ func (d *Daemon) Run() error {
 
 	d.logger.Info("daemon started")
 
+	if err := d.telegram.SendStartupMessage(d.version); err != nil {
+		d.logger.Warn("failed to send startup notification", "error", err)
+	}
+
 	for {
 		select {
 		case sig := <-sigCh:
@@ -219,6 +223,10 @@ func (d *Daemon) checkGeoIPUpdate(ctx context.Context) error {
 
 func (d *Daemon) shutdown() error {
 	d.logger.Info("shutting down")
+
+	if err := d.telegram.SendShutdownMessage(); err != nil {
+		d.logger.Warn("failed to send shutdown notification", "error", err)
+	}
 
 	if d.journal != nil {
 		d.journal.Stop()

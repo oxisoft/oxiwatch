@@ -72,6 +72,28 @@ Connection successful!`,
 	return t.send(msg)
 }
 
+func (t *Telegram) SendStartupMessage(version string) error {
+	msg := fmt.Sprintf(`🟢 <b>OxiWatch Started</b>
+🖥️ Server: %s
+📅 Time: %s
+📦 Version: %s`,
+		escapeHTML(t.serverName),
+		time.Now().Format("2006-01-02 15:04:05"),
+		escapeHTML(version),
+	)
+	return t.send(msg)
+}
+
+func (t *Telegram) SendShutdownMessage() error {
+	msg := fmt.Sprintf(`🔴 <b>OxiWatch Stopped</b>
+🖥️ Server: %s
+📅 Time: %s`,
+		escapeHTML(t.serverName),
+		time.Now().Format("2006-01-02 15:04:05"),
+	)
+	return t.send(msg)
+}
+
 func (t *Telegram) send(text string) error {
 	msg := tgbotapi.NewMessage(t.chatID, text)
 	msg.ParseMode = tgbotapi.ModeHTML
