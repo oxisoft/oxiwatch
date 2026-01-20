@@ -15,7 +15,7 @@ SSH login monitor for Debian-like Linux systems. Sends Telegram notifications fo
 ## Requirements
 
 - Go 1.21+
-- Linux with systemd (Debian, Ubuntu, etc.)
+- Linux with systemd (tested on Debian 12/13, should work on Ubuntu and other Debian-based systems)
 - Telegram bot token and chat ID
 
 ## Quick Install
