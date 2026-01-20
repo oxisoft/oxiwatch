@@ -70,7 +70,7 @@ cat > "$CONFIG_DIR/config.json" << EOF
 }
 EOF
 chown oxiwatch:oxiwatch "$CONFIG_DIR/config.json"
-chmod 600 "$CONFIG_DIR/config.json"
+chmod 644 "$CONFIG_DIR/config.json"
 
 # Install systemd service
 cat > /etc/systemd/system/oxiwatch.service << 'EOF'
