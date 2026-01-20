@@ -26,6 +26,13 @@ Run the following command to install oxiwatch:
 curl -sSL https://raw.githubusercontent.com/oxisoft/oxiwatch/main/scripts/install.sh | sudo bash
 ```
 
+**If you get a "Cannot read from terminal" error**, download and run separately:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/oxisoft/oxiwatch/main/scripts/install.sh -o /tmp/install.sh
+sudo bash /tmp/install.sh
+```
+
 The installer will:
 - Download the latest release for your architecture
 - Ask for your Telegram bot token and chat ID

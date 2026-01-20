@@ -76,12 +76,21 @@ func (r *Reader) parseJournalLine(line string) *parser.SSHEvent {
 		return nil
 	}
 
+	r.logger.Debug("journal entry", "identifier", entry.SyslogIdentifier, "message", entry.Message)
+
 	if entry.SyslogIdentifier != "sshd" && entry.SyslogIdentifier != "sshd-session" {
+		r.logger.Debug("skipping non-sshd entry", "identifier", entry.SyslogIdentifier)
 		return nil
 	}
 
 	timestamp := r.parseTimestamp(entry.RealtimeTimestamp)
-	return parser.ParseMessage(entry.Message, timestamp)
+	event := parser.ParseMessage(entry.Message, timestamp)
+	if event == nil {
+		r.logger.Debug("message not parsed", "message", entry.Message)
+	} else {
+		r.logger.Debug("parsed event", "type", event.EventType, "user", event.Username, "ip", event.IP)
+	}
+	return event
 }
 
 func (r *Reader) parseTimestamp(ts string) time.Time {

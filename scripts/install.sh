@@ -12,6 +12,21 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+# Check if interactive input is available
+check_tty() {
+  if ! exec 3</dev/tty 2>/dev/null; then
+    echo ""
+    echo "ERROR: Cannot read from terminal."
+    echo ""
+    echo "This can happen when piping directly to bash. Try instead:"
+    echo "  curl -sSL https://raw.githubusercontent.com/oxisoft/oxiwatch/main/scripts/install.sh -o /tmp/install.sh"
+    echo "  sudo bash /tmp/install.sh"
+    echo ""
+    exit 1
+  fi
+  exec 3<&-
+}
+
 # Detect architecture
 ARCH=$(uname -m)
 case $ARCH in
@@ -43,7 +58,8 @@ chown oxiwatch:oxiwatch "$DATA_DIR"
 # Install binary
 mv /tmp/oxiwatch "$INSTALL_DIR/oxiwatch"
 
-# Interactive configuration (read from /dev/tty for curl|bash compatibility)
+# Interactive configuration
+check_tty
 echo ""
 echo "=== OxiWatch Configuration ==="
 echo ""
