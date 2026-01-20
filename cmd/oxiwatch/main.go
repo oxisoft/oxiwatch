@@ -46,7 +46,7 @@ func main() {
 	case "upgrade":
 		runUpgrade()
 	case "version":
-		fmt.Printf("oxiwatch version %s\n", Version)
+		runVersion()
 	case "help", "-h", "--help":
 		printUsage()
 	default:
@@ -300,6 +300,21 @@ func runSendTest(configPath string) {
 	}
 
 	fmt.Println("Test message sent successfully")
+}
+
+func runVersion() {
+	fmt.Printf("oxiwatch version %s\n", Version)
+
+	checker := version.NewChecker(Version)
+	available, latest, err := checker.IsUpdateAvailable()
+	if err != nil {
+		return
+	}
+
+	if available {
+		fmt.Printf("\nUpdate available: %s -> %s\n", Version, latest)
+		fmt.Println("Run 'oxiwatch upgrade' to update")
+	}
 }
 
 func runUpgrade() {
