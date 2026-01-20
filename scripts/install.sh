@@ -43,13 +43,13 @@ chown oxiwatch:oxiwatch "$DATA_DIR"
 # Install binary
 mv /tmp/oxiwatch "$INSTALL_DIR/oxiwatch"
 
-# Interactive configuration
+# Interactive configuration (read from /dev/tty for curl|bash compatibility)
 echo ""
 echo "=== OxiWatch Configuration ==="
 echo ""
-read -p "Telegram Bot Token: " TELEGRAM_TOKEN
-read -p "Telegram Chat ID: " TELEGRAM_CHAT_ID
-read -p "Enable GeoIP lookup? [Y/n]: " GEOIP_ENABLED
+read -p "Telegram Bot Token: " TELEGRAM_TOKEN < /dev/tty
+read -p "Telegram Chat ID: " TELEGRAM_CHAT_ID < /dev/tty
+read -p "Enable GeoIP lookup? [Y/n]: " GEOIP_ENABLED < /dev/tty
 GEOIP_ENABLED=${GEOIP_ENABLED:-Y}
 [[ $GEOIP_ENABLED =~ ^[Yy] ]] && GEOIP_ENABLED="true" || GEOIP_ENABLED="false"
 
@@ -99,7 +99,7 @@ echo "Binary: $INSTALL_DIR/oxiwatch"
 echo "Config: $CONFIG_DIR/config.json"
 echo "Data:   $DATA_DIR/"
 echo ""
-read -p "Start oxiwatch service now? [Y/n]: " START_NOW
+read -p "Start oxiwatch service now? [Y/n]: " START_NOW < /dev/tty
 START_NOW=${START_NOW:-Y}
 if [[ $START_NOW =~ ^[Yy] ]]; then
   systemctl start oxiwatch
