@@ -58,15 +58,56 @@ chown oxiwatch:oxiwatch "$DATA_DIR"
 # Install binary
 mv /tmp/oxiwatch "$INSTALL_DIR/oxiwatch"
 
+# Validate bot token format (number:alphanumeric)
+validate_token() {
+  if [[ ! $1 =~ ^[0-9]+:[A-Za-z0-9_-]+$ ]]; then
+    return 1
+  fi
+  return 0
+}
+
+# Validate chat ID (numeric, can be negative for groups)
+validate_chat_id() {
+  if [[ ! $1 =~ ^-?[0-9]+$ ]]; then
+    return 1
+  fi
+  return 0
+}
+
 # Interactive configuration
 check_tty
 echo ""
 echo "=== OxiWatch Configuration ==="
 echo ""
-echo -n "Telegram Bot Token: "
-read TELEGRAM_TOKEN < /dev/tty
-echo -n "Telegram Chat ID: "
-read TELEGRAM_CHAT_ID < /dev/tty
+
+while true; do
+  echo -n "Telegram Bot Token: "
+  read TELEGRAM_TOKEN < /dev/tty
+  if [ -z "$TELEGRAM_TOKEN" ]; then
+    echo "Error: Bot token cannot be empty"
+    continue
+  fi
+  if ! validate_token "$TELEGRAM_TOKEN"; then
+    echo "Error: Invalid bot token format (expected: 123456789:ABCdefGHI...)"
+    continue
+  fi
+  break
+done
+
+while true; do
+  echo -n "Telegram Chat ID: "
+  read TELEGRAM_CHAT_ID < /dev/tty
+  if [ -z "$TELEGRAM_CHAT_ID" ]; then
+    echo "Error: Chat ID cannot be empty"
+    continue
+  fi
+  if ! validate_chat_id "$TELEGRAM_CHAT_ID"; then
+    echo "Error: Invalid chat ID (must be numeric, e.g., 123456789 or -100123456789)"
+    continue
+  fi
+  break
+done
+
 echo -n "Enable GeoIP lookup? [Y/n]: "
 read GEOIP_ENABLED < /dev/tty
 GEOIP_ENABLED=${GEOIP_ENABLED:-Y}

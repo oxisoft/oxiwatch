@@ -331,13 +331,13 @@ func runUpgrade() {
 		return
 	}
 
-	fmt.Printf("Upgrading from %s to %s...\n", Version, latest)
+	fmt.Printf("Upgrading from %s to %s...\n\n", Version, latest)
 
-	if err := checker.Upgrade(); err != nil {
+	if err := checker.Upgrade(true); err != nil {
 		fatal("upgrade failed: %v", err)
 	}
 
-	fmt.Printf("Successfully upgraded to v%s\n", latest)
+	fmt.Printf("\nSuccessfully upgraded to v%s\n", latest)
 	fmt.Println("Restart the service: sudo systemctl restart oxiwatch")
 }
 

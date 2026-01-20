@@ -1,6 +1,8 @@
 package version
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -98,13 +100,60 @@ func (c *Checker) GetAssetURL(release *Release) (string, error) {
 	return "", fmt.Errorf("no binary found for %s/%s", runtime.GOOS, runtime.GOARCH)
 }
 
-func (c *Checker) Upgrade() error {
+func (c *Checker) GetChecksumURL(release *Release) (string, error) {
+	for _, asset := range release.Assets {
+		if asset.Name == "checksums.txt" {
+			return asset.BrowserDownloadURL, nil
+		}
+	}
+	return "", fmt.Errorf("checksums.txt not found in release")
+}
+
+func (c *Checker) fetchChecksums(url string) (map[string]string, error) {
+	resp, err := c.httpClient.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch checksums: status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	checksums := make(map[string]string)
+	for _, line := range strings.Split(string(body), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		parts := strings.Fields(line)
+		if len(parts) >= 2 {
+			checksums[parts[1]] = parts[0]
+		}
+	}
+	return checksums, nil
+}
+
+func (c *Checker) Upgrade(verbose bool) error {
+	log := func(format string, args ...any) {
+		if verbose {
+			fmt.Printf(format+"\n", args...)
+		}
+	}
+
+	log("Fetching release information...")
 	release, err := c.GetLatestRelease()
 	if err != nil {
 		return fmt.Errorf("failed to fetch latest release: %w", err)
 	}
 
 	latestVersion := strings.TrimPrefix(release.TagName, "v")
+	log("Latest version: %s", latestVersion)
 
 	if c.currentVersion != "dev" {
 		currentClean := strings.TrimPrefix(c.currentVersion, "v")
@@ -113,9 +162,38 @@ func (c *Checker) Upgrade() error {
 		}
 	}
 
+	log("Fetching checksums...")
+	checksumURL, err := c.GetChecksumURL(release)
+	if err != nil {
+		return fmt.Errorf("failed to get checksum URL: %w", err)
+	}
+
+	checksums, err := c.fetchChecksums(checksumURL)
+	if err != nil {
+		return fmt.Errorf("failed to fetch checksums: %w", err)
+	}
+
+	assetName := fmt.Sprintf("oxiwatch-%s-%s", runtime.GOOS, runtime.GOARCH)
+	expectedChecksum, ok := checksums[assetName]
+	if !ok {
+		return fmt.Errorf("no checksum found for %s", assetName)
+	}
+	log("Expected checksum: %s", expectedChecksum)
+
 	assetURL, err := c.GetAssetURL(release)
 	if err != nil {
 		return err
+	}
+
+	log("Downloading binary...")
+	resp, err := c.httpClient.Get(assetURL)
+	if err != nil {
+		return fmt.Errorf("failed to download binary: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("download failed with status %d", resp.StatusCode)
 	}
 
 	execPath, err := os.Executable()
@@ -130,33 +208,38 @@ func (c *Checker) Upgrade() error {
 	execDir := filepath.Dir(execPath)
 	tempPath := filepath.Join(execDir, ".oxiwatch.new")
 
-	resp, err := c.httpClient.Get(assetURL)
-	if err != nil {
-		return fmt.Errorf("failed to download binary: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("download failed with status %d", resp.StatusCode)
-	}
-
 	tempFile, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %w", err)
 	}
 
-	_, err = io.Copy(tempFile, resp.Body)
+	hasher := sha256.New()
+	writer := io.MultiWriter(tempFile, hasher)
+
+	_, err = io.Copy(writer, resp.Body)
 	tempFile.Close()
 	if err != nil {
 		os.Remove(tempPath)
 		return fmt.Errorf("failed to write binary: %w", err)
 	}
 
+	actualChecksum := hex.EncodeToString(hasher.Sum(nil))
+	log("Downloaded checksum: %s", actualChecksum)
+
+	log("Verifying checksum...")
+	if actualChecksum != expectedChecksum {
+		os.Remove(tempPath)
+		return fmt.Errorf("checksum mismatch: expected %s, got %s", expectedChecksum, actualChecksum)
+	}
+	log("Checksum verified successfully")
+
+	log("Replacing binary...")
 	if err := os.Rename(tempPath, execPath); err != nil {
 		os.Remove(tempPath)
 		return fmt.Errorf("failed to replace binary: %w", err)
 	}
 
+	log("Upgrade complete")
 	return nil
 }
 
