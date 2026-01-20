@@ -69,6 +69,7 @@ cat > "$CONFIG_DIR/config.json" << EOF
   "log_level": "info"
 }
 EOF
+chown oxiwatch:oxiwatch "$CONFIG_DIR/config.json"
 chmod 600 "$CONFIG_DIR/config.json"
 
 # Install systemd service
