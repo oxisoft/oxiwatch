@@ -172,6 +172,10 @@ oxiwatch geoip status
 3. Add the bot token and chat ID to your config
 4. Test with `oxiwatch send-test`
 
+## About
+
+Developed by [OxiSoft](https://oxisoft.io) — we build robust backend systems with Go and Rust, and cross-platform apps with Flutter.
+
 ## License
 
 MIT
