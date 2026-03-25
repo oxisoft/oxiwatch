@@ -78,7 +78,7 @@ func (r *Reader) parseJournalLine(line string) *parser.SSHEvent {
 
 	r.logger.Debug("journal entry", "identifier", entry.SyslogIdentifier, "message", entry.Message)
 
-	if entry.SyslogIdentifier != "sshd" && entry.SyslogIdentifier != "sshd-session" {
+	if entry.SyslogIdentifier != "sshd" && entry.SyslogIdentifier != "sshd-session" && entry.SyslogIdentifier != "sshd-auth" {
 		r.logger.Debug("skipping non-sshd entry", "identifier", entry.SyslogIdentifier)
 		return nil
 	}

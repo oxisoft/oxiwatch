@@ -3,6 +3,7 @@ package report
 import (
 	"bytes"
 	"fmt"
+	"html"
 	"time"
 
 	"github.com/oxisoft/oxiwatch/internal/storage"
@@ -60,32 +61,32 @@ func (g *Generator) GenerateDailyReport(date time.Time) (string, error) {
 func (g *Generator) formatReport(date time.Time, stats *storage.Stats, topUsers []storage.UsernameCount, topIPs []storage.IPCount, successCount int) string {
 	var buf bytes.Buffer
 
-	buf.WriteString(fmt.Sprintf("📊 *Daily SSH Report*\n"))
-	buf.WriteString(fmt.Sprintf("🖥️ Server: %s\n", escapeMarkdown(g.serverName)))
-	buf.WriteString(fmt.Sprintf("📅 %s\n\n", date.Format("2006\\-01\\-02")))
+	buf.WriteString("📊 <b>Daily SSH Report</b>\n")
+	buf.WriteString(fmt.Sprintf("🖥️ Server: %s\n", html.EscapeString(g.serverName)))
+	buf.WriteString(fmt.Sprintf("📅 %s\n\n", date.Format("2006-01-02")))
 
-	buf.WriteString("📈 *Summary*\n")
+	buf.WriteString("📈 <b>Summary</b>\n")
 	buf.WriteString(fmt.Sprintf("• Successful logins: %s\n", formatNumber(successCount)))
 	buf.WriteString(fmt.Sprintf("• Failed attempts: %s\n", formatNumber(stats.TotalAttempts)))
 	buf.WriteString(fmt.Sprintf("• Unique IPs: %s\n", formatNumber(stats.UniqueIPs)))
 	buf.WriteString(fmt.Sprintf("• Unique usernames: %s\n\n", formatNumber(stats.UniqueUsernames)))
 
 	if len(topUsers) > 0 {
-		buf.WriteString("👤 *Top 10 Usernames*\n")
+		buf.WriteString("👤 <b>Top 10 Usernames</b>\n")
 		for i, u := range topUsers {
-			buf.WriteString(fmt.Sprintf("%d\\. %s \\- %s\n", i+1, escapeMarkdown(u.Username), formatNumber(u.Count)))
+			buf.WriteString(fmt.Sprintf("%d. %s - %s\n", i+1, html.EscapeString(u.Username), formatNumber(u.Count)))
 		}
 		buf.WriteString("\n")
 	}
 
 	if len(topIPs) > 0 {
-		buf.WriteString("🌐 *Top 10 IPs*\n")
+		buf.WriteString("🌐 <b>Top 10 IPs</b>\n")
 		for i, ip := range topIPs {
 			location := formatLocation(ip.Country, ip.City)
 			if location != "" {
-				buf.WriteString(fmt.Sprintf("%d\\. %s \\(%s\\) \\- %s\n", i+1, escapeMarkdown(ip.IP), escapeMarkdown(location), formatNumber(ip.Count)))
+				buf.WriteString(fmt.Sprintf("%d. %s (%s) - %s\n", i+1, html.EscapeString(ip.IP), html.EscapeString(location), formatNumber(ip.Count)))
 			} else {
-				buf.WriteString(fmt.Sprintf("%d\\. %s \\- %s\n", i+1, escapeMarkdown(ip.IP), formatNumber(ip.Count)))
+				buf.WriteString(fmt.Sprintf("%d. %s - %s\n", i+1, html.EscapeString(ip.IP), formatNumber(ip.Count)))
 			}
 		}
 	}
@@ -170,27 +171,6 @@ func formatNumber(n int) string {
 		}
 		result.WriteRune(c)
 	}
-	return escapeMarkdown(result.String())
-}
-
-func escapeMarkdown(s string) string {
-	chars := []string{"_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!"}
-	result := s
-	for _, c := range chars {
-		result = replaceAll(result, c, "\\"+c)
-	}
-	return result
-}
-
-func replaceAll(s, old, new string) string {
-	var result bytes.Buffer
-	for i := 0; i < len(s); i++ {
-		if string(s[i]) == old {
-			result.WriteString(new)
-		} else {
-			result.WriteByte(s[i])
-		}
-	}
 	return result.String()
 }
 
@@ -206,8 +186,8 @@ func (g *Generator) checkVersionUpdate() string {
 	}
 
 	var buf bytes.Buffer
-	buf.WriteString("\n⬆️ *Update Available*\n")
-	buf.WriteString(fmt.Sprintf("Current: %s \\| Latest: %s\n", escapeMarkdown(g.currentVersion), escapeMarkdown(latest)))
-	buf.WriteString("Run: `sudo oxiwatch upgrade`\n")
+	buf.WriteString("\n⬆️ <b>Update Available</b>\n")
+	buf.WriteString(fmt.Sprintf("Current: %s | Latest: %s\n", html.EscapeString(g.currentVersion), html.EscapeString(latest)))
+	buf.WriteString("Run: <code>sudo oxiwatch upgrade</code>\n")
 	return buf.String()
 }
