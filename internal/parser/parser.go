@@ -39,6 +39,14 @@ var (
 	messageFailedPattern = regexp.MustCompile(
 		`^Failed\s+(password|publickey)\s+for\s+(invalid user\s+)?(\S+)\s+from\s+(\S+)\s+port\s+(\d+)`,
 	)
+
+	messageInvalidUserPattern = regexp.MustCompile(
+		`^Invalid user (\S+) from (\S+) port (\d+)`,
+	)
+
+	messageAuthDisconnectPattern = regexp.MustCompile(
+		`^(?:Disconnected from|Connection closed by|Connection reset by) authenticating user (\S+) (\S+) port (\d+)`,
+	)
 )
 
 func ParseLine(line string, year int) *SSHEvent {
@@ -135,19 +143,43 @@ func parseMessageSuccess(message string, timestamp time.Time) *SSHEvent {
 
 func parseMessageFailure(message string, timestamp time.Time) *SSHEvent {
 	matches := messageFailedPattern.FindStringSubmatch(message)
-	if matches == nil {
-		return nil
+	if matches != nil {
+		port, _ := strconv.Atoi(matches[5])
+		return &SSHEvent{
+			Timestamp:   timestamp,
+			EventType:   EventFailure,
+			Method:      matches[1],
+			InvalidUser: matches[2] != "",
+			Username:    matches[3],
+			IP:          matches[4],
+			Port:        port,
+		}
 	}
 
-	port, _ := strconv.Atoi(matches[5])
-
-	return &SSHEvent{
-		Timestamp:   timestamp,
-		EventType:   EventFailure,
-		Method:      matches[1],
-		InvalidUser: matches[2] != "",
-		Username:    matches[3],
-		IP:          matches[4],
-		Port:        port,
+	matches = messageInvalidUserPattern.FindStringSubmatch(message)
+	if matches != nil {
+		port, _ := strconv.Atoi(matches[3])
+		return &SSHEvent{
+			Timestamp:   timestamp,
+			EventType:   EventFailure,
+			InvalidUser: true,
+			Username:    matches[1],
+			IP:          matches[2],
+			Port:        port,
+		}
 	}
+
+	matches = messageAuthDisconnectPattern.FindStringSubmatch(message)
+	if matches != nil {
+		port, _ := strconv.Atoi(matches[3])
+		return &SSHEvent{
+			Timestamp:   timestamp,
+			EventType:   EventFailure,
+			Username:    matches[1],
+			IP:          matches[2],
+			Port:        port,
+		}
+	}
+
+	return nil
 }
