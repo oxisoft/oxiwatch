@@ -10,6 +10,7 @@ import (
 	"github.com/oxisoft/oxiwatch/internal/config"
 	"github.com/oxisoft/oxiwatch/internal/daemon"
 	"github.com/oxisoft/oxiwatch/internal/geoip"
+	"github.com/oxisoft/oxiwatch/internal/journal"
 	"github.com/oxisoft/oxiwatch/internal/notifier"
 	"github.com/oxisoft/oxiwatch/internal/report"
 	"github.com/oxisoft/oxiwatch/internal/storage"
@@ -37,6 +38,8 @@ func main() {
 		runStats(configPath)
 	case "geoip":
 		runGeoIP(configPath)
+	case "journal":
+		runJournal()
 	case "cleanup":
 		runCleanup(configPath)
 	case "config":
@@ -64,6 +67,7 @@ Commands:
   stats today                  Show today's statistics
   stats report [-d N]          Generate report (last N days, default 1)
   stats logins [-d N]          Show successful logins (last N days, default 7)
+  journal test [-n 50]         Test journal parsing (diagnostic)
   geoip update                 Download/update GeoIP database
   geoip status                 Show GeoIP database info
   cleanup                      Manually run retention cleanup
@@ -158,6 +162,59 @@ func runStats(configPath string) {
 		fmt.Fprintf(os.Stderr, "Unknown stats command: %s\n", os.Args[2])
 		os.Exit(1)
 	}
+}
+
+func runJournal() {
+	fs := flag.NewFlagSet("journal", flag.ExitOnError)
+	n := fs.Int("n", 50, "Number of recent entries to read")
+
+	args := os.Args[2:]
+	if len(args) > 0 && args[0] == "test" {
+		args = args[1:]
+	}
+	fs.Parse(args)
+
+	results, err := journal.ReadRecent(*n)
+	if err != nil {
+		fatal("failed to read journal: %v", err)
+	}
+
+	var success, failure, skipped, unrecognized, jsonErr int
+
+	for _, r := range results {
+		switch r.Status {
+		case "success":
+			fmt.Printf("  [SUCCESS] %-20s %s\n", r.Identifier, truncate(r.Message, 100))
+			success++
+		case "failure":
+			fmt.Printf("  [FAILURE] %-20s %s\n", r.Identifier, truncate(r.Message, 100))
+			failure++
+		case "skipped":
+			skipped++
+		case "unrecognized":
+			fmt.Printf("  [UNKNOWN] %-20s %s\n", r.Identifier, truncate(r.Message, 100))
+			unrecognized++
+		case "json_error":
+			fmt.Printf("  [JSONERR] %s\n", truncate(r.Message, 100))
+			jsonErr++
+		}
+	}
+
+	fmt.Printf("\nSummary (%d entries):\n", len(results))
+	fmt.Printf("  Parsed as success:    %d\n", success)
+	fmt.Printf("  Parsed as failure:    %d\n", failure)
+	fmt.Printf("  Skipped (non-sshd):   %d\n", skipped)
+	fmt.Printf("  Unrecognized message: %d\n", unrecognized)
+	if jsonErr > 0 {
+		fmt.Printf("  JSON parse errors:    %d\n", jsonErr)
+	}
+}
+
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
 }
 
 func runGeoIP(configPath string) {

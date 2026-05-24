@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>OxiWatch — SSH Login Monitor with Telegram Alerts for Linux</title>
+<meta name="description" content="OxiWatch is a free, open-source SSH login monitor for Linux. Get instant Telegram alerts on every SSH login and a daily report of failed brute-force attempts, with GeoIP. Works on Debian and Ubuntu.">
+<link rel="canonical" href="https://oxiwatch.oxisoft.io/">
+<meta name="theme-color" content="#0b1020">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OxiWatch">
+<meta property="og:title" content="OxiWatch — SSH Login Monitor with Telegram Alerts for Linux">
+<meta property="og:description" content="Get an instant Telegram alert on every SSH login, plus a daily report of failed brute-force attempts with GeoIP. Free, open-source, single binary for Debian & Ubuntu.">
+<meta property="og:url" content="https://oxiwatch.oxisoft.io/">
+<meta property="og:image" content="https://oxiwatch.oxisoft.io/assets/og.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="OxiWatch — SSH Login Monitor with Telegram Alerts for Linux">
+<meta name="twitter:description" content="Instant Telegram alerts on every SSH login + daily report of failed brute-force attempts with GeoIP. Free & open source.">
+<meta name="twitter:image" content="https://oxiwatch.oxisoft.io/assets/og.png">
+
+<link rel="icon" href="assets/favicon.png" type="image/png">
+
+<!-- Structured data: SoftwareApplication -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "OxiWatch",
+  "applicationCategory": "SecurityApplication",
+  "applicationSubCategory": "SSH login monitor",
+  "operatingSystem": "Linux (Debian, Ubuntu, systemd)",
+  "description": "OxiWatch is a free, open-source SSH login monitor for Linux servers. It sends instant Telegram alerts on every successful SSH login and a daily report of failed brute-force attempts, with GeoIP geolocation.",
+  "url": "https://oxiwatch.oxisoft.io/",
+  "downloadUrl": "https://github.com/oxisoft/oxiwatch/releases",
+  "softwareHelp": "https://github.com/oxisoft/oxiwatch#readme",
+  "license": "https://github.com/oxisoft/oxiwatch/blob/main/LICENSE",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Organization", "name": "OxiSoft", "url": "https://oxisoft.io" }
+}
+</script>
+
+<!-- Structured data: FAQPage -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I get a Telegram notification when someone logs into my server over SSH?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Install OxiWatch and point it at a Telegram bot. It sends an instant message on every successful SSH login, including the username, source IP, and country." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does OxiWatch replace fail2ban?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. fail2ban blocks repeated failed attempts; OxiWatch tells you who actually logged in and summarizes attacks in a daily report. They solve different problems and run together on the same machine." }
+    },
+    {
+      "@type": "Question",
+      "name": "Which Linux distributions are supported?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Any Debian-based distribution with systemd. OxiWatch is tested on Debian 12 and 13 and works on Ubuntu and derivatives." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is a GeoIP API key required?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. OxiWatch uses the free DB-IP Lite database and downloads and updates it automatically. No account, key, or license is needed." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does it monitor failed SSH login attempts too?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Failed attempts, including invalid users and pre-auth disconnects, are recorded and summarized in a daily Telegram report with the top attacker IPs." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is OxiWatch free and open source?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. OxiWatch is MIT licensed and free to use." }
+    }
+  ]
+}
+</script>
+
+<style>
+  :root {
+    --bg: #0b1020;
+    --bg2: #11182f;
+    --card: #151d36;
+    --line: #232c4a;
+    --text: #e7ecf6;
+    --muted: #9aa6c4;
+    --accent: #2ea44f;
+    --accent2: #4f8cff;
+    --code: #0a0f1e;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+  header {
+    border-bottom: 1px solid var(--line);
+    background: rgba(11,16,32,.85);
+    backdrop-filter: blur(8px);
+    position: sticky; top: 0; z-index: 10;
+  }
+  nav { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  nav .brand { font-weight: 700; font-size: 1.2rem; letter-spacing: .3px; }
+  nav .brand span { color: var(--accent); }
+  nav .links a { color: var(--muted); margin-left: 22px; font-size: .95rem; }
+  nav .links a:hover { color: var(--text); text-decoration: none; }
+  .hero {
+    background: radial-gradient(1200px 500px at 50% -120px, #1b2750 0%, var(--bg) 60%);
+    text-align: center;
+    padding: 84px 0 64px;
+  }
+  .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.1; margin: 0 0 16px; }
+  .hero h1 .accent { color: var(--accent); }
+  .hero p.lede { font-size: clamp(1.05rem, 2.2vw, 1.3rem); color: var(--muted); max-width: 720px; margin: 0 auto 30px; }
+  .btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: 12px 22px; border-radius: 8px; font-weight: 600; font-size: 1rem;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #2c9447; text-decoration: none; }
+  .btn-ghost { border: 1px solid var(--line); color: var(--text); }
+  .btn-ghost:hover { border-color: var(--accent2); text-decoration: none; }
+  .install {
+    margin: 34px auto 0; max-width: 720px; text-align: left;
+  }
+  .install .label { color: var(--muted); font-size: .85rem; margin-bottom: 8px; }
+  pre {
+    background: var(--code); border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px 18px; overflow-x: auto; font-size: .92rem; margin: 0;
+  }
+  code { font-family: "SF Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  section { padding: 64px 0; border-top: 1px solid var(--line); }
+  section h2 { font-size: clamp(1.5rem, 3vw, 2rem); margin: 0 0 8px; text-align: center; }
+  section .sub { color: var(--muted); text-align: center; max-width: 680px; margin: 0 auto 40px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+  .feature {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px;
+  }
+  .feature h3 { margin: 0 0 8px; font-size: 1.08rem; }
+  .feature p { margin: 0; color: var(--muted); font-size: .95rem; }
+  .feature .ico { font-size: 1.5rem; margin-bottom: 10px; }
+  .steps { counter-reset: step; max-width: 720px; margin: 0 auto; }
+  .step { position: relative; padding: 0 0 22px 52px; }
+  .step::before {
+    counter-increment: step; content: counter(step);
+    position: absolute; left: 0; top: 0; width: 34px; height: 34px;
+    background: var(--accent); color: #fff; border-radius: 50%;
+    display: grid; place-items: center; font-weight: 700;
+  }
+  .step h3 { margin: 4px 0 4px; font-size: 1.05rem; }
+  .step p { margin: 0; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: .95rem; }
+  th { color: var(--muted); font-weight: 600; }
+  details {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px 20px; margin-bottom: 12px;
+  }
+  details summary { cursor: pointer; font-weight: 600; list-style: none; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::after { content: "+"; float: right; color: var(--muted); }
+  details[open] summary::after { content: "–"; }
+  details p { color: var(--muted); margin: 12px 0 0; }
+  footer { border-top: 1px solid var(--line); padding: 40px 0; color: var(--muted); text-align: center; font-size: .92rem; }
+  footer a { color: var(--muted); }
+  footer a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <div class="brand">Oxi<span>Watch</span></div>
+      <div class="links">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/oxisoft/oxiwatch">GitHub</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero" style="border-top:none;">
+    <div class="wrap">
+      <h1>SSH login alerts on <span class="accent">Telegram</span>,<br>the moment they happen</h1>
+      <p class="lede">
+        OxiWatch is a free, open-source <strong>SSH login monitor for Linux</strong>. Get an instant
+        Telegram notification on every successful login, plus a daily report of failed brute-force
+        attempts — with GeoIP. One binary, runs as a systemd service.
+      </p>
+      <div class="btns">
+        <a class="btn btn-primary" href="#install">Install in 30 seconds</a>
+        <a class="btn btn-ghost" href="https://github.com/oxisoft/oxiwatch">View on GitHub</a>
+      </div>
+
+      <div class="install" id="install">
+        <div class="label"># Quick install (Debian / Ubuntu)</div>
+        <pre><code>curl -sSL https://raw.githubusercontent.com/oxisoft/oxiwatch/main/scripts/install.sh | sudo bash</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <h2>Everything you need to watch SSH access</h2>
+      <p class="sub">Real-time alerting and daily reporting for one server or a whole fleet.</p>
+      <div class="grid">
+        <div class="feature">
+          <div class="ico">⚡</div>
+          <h3>Instant Telegram alerts</h3>
+          <p>Get notified the second someone logs in over SSH — with username, source IP, and country.</p>
+        </div>
+        <div class="feature">
+          <div class="ico">🛡️</div>
+          <h3>Daily failed-login report</h3>
+          <p>A morning summary of brute-force attempts and your top attacker IPs, so nothing slips by.</p>
+        </div>
+        <div class="feature">
+          <div class="ico">🌍</div>
+          <h3>Built-in GeoIP</h3>
+          <p>See where logins and attacks come from. Uses free DB-IP Lite — no API key or registration.</p>
+        </div>
+        <div class="feature">
+          <div class="ico">📡</div>
+          <h3>Real-time journal watch</h3>
+          <p>Reads the systemd journal directly. No log files to tail, no PAM hooks to install.</p>
+        </div>
+        <div class="feature">
+          <div class="ico">🗄️</div>
+          <h3>Local SQLite history</h3>
+          <p>Keeps an audit trail of logins with configurable retention. Your data stays on your server.</p>
+        </div>
+        <div class="feature">
+          <div class="ico">🔄</div>
+          <h3>Self-upgrading</h3>
+          <p>A single static binary that updates itself from GitHub releases with <code>oxiwatch upgrade</code>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <h2>How it works</h2>
+      <p class="sub">From zero to live alerts in three steps.</p>
+      <div class="steps">
+        <div class="step">
+          <h3>Create a Telegram bot</h3>
+          <p>Talk to <a href="https://t.me/BotFather">@BotFather</a> for a token and grab your chat ID from <a href="https://t.me/userinfobot">@userinfobot</a>.</p>
+        </div>
+        <div class="step">
+          <h3>Run the installer</h3>
+          <p>The script downloads the right binary, asks for your bot token and chat ID, and sets up the systemd service.</p>
+        </div>
+        <div class="step">
+          <h3>Get alerted</h3>
+          <p>OxiWatch watches SSH in real time. Every successful login pings your Telegram instantly; failed attempts arrive in the daily report.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="fail2ban">
+    <div class="wrap">
+      <h2>OxiWatch and fail2ban</h2>
+      <p class="sub">Not a competitor — a complement. Run both on the same machine.</p>
+      <table>
+        <tr><th></th><th>fail2ban</th><th>OxiWatch</th></tr>
+        <tr><td>Role</td><td>Prevention — bans IPs after failures</td><td>Visibility — alerts &amp; summarizes</td></tr>
+        <tr><td>Acts on</td><td>Failed attempts (firewall bans)</td><td>Successful logins + failed attempts</td></tr>
+        <tr><td>Notifies you</td><td>Not out of the box</td><td>Telegram, in real time</td></tr>
+        <tr><td>Tells you who got in</td><td>No</td><td>Yes</td></tr>
+      </table>
+      <p style="color:var(--muted); margin-top:18px; text-align:center;">
+        fail2ban keeps attackers out. OxiWatch keeps you informed. Together they cover both sides.
+      </p>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <h2>Frequently asked questions</h2>
+      <p class="sub">SSH monitoring, Telegram alerts, GeoIP, and more.</p>
+
+      <details open>
+        <summary>How do I get a Telegram notification when someone logs into my server over SSH?</summary>
+        <p>Install OxiWatch and point it at a Telegram bot. It sends an instant message on every successful SSH login — including the username, source IP, and country.</p>
+      </details>
+      <details>
+        <summary>Does OxiWatch replace fail2ban?</summary>
+        <p>No. fail2ban <em>blocks</em> repeated failed attempts; OxiWatch <em>tells you</em> who actually logged in and summarizes attacks in a daily report. They solve different problems and run together on the same machine.</p>
+      </details>
+      <details>
+        <summary>Which Linux distributions are supported?</summary>
+        <p>Any Debian-based distribution with systemd. OxiWatch is tested on Debian 12 and 13 and works on Ubuntu and derivatives.</p>
+      </details>
+      <details>
+        <summary>Does it work with OpenSSH 10.0+?</summary>
+        <p>Yes. OxiWatch tracks the <code>sshd</code>, <code>sshd-session</code>, and <code>sshd-auth</code> syslog identifiers, so logins and failed attempts are captured on newer OpenSSH releases.</p>
+      </details>
+      <details>
+        <summary>Is a GeoIP API key required?</summary>
+        <p>No. OxiWatch uses the free DB-IP Lite database and downloads and updates it automatically. No account, key, or license is needed.</p>
+      </details>
+      <details>
+        <summary>Does it monitor failed SSH login attempts too?</summary>
+        <p>Yes. Failed attempts — including invalid users and pre-auth disconnects — are recorded and summarized in a daily Telegram report with the top attacker IPs.</p>
+      </details>
+      <details>
+        <summary>Can I monitor multiple servers in one Telegram chat?</summary>
+        <p>Yes. Install OxiWatch on each server and point them at the same chat. Set <code>server_name</code> so each alert is clearly labeled.</p>
+      </details>
+      <details>
+        <summary>Is OxiWatch free and open source?</summary>
+        <p>Yes — it's MIT licensed and free to use. The source is on <a href="https://github.com/oxisoft/oxiwatch">GitHub</a>.</p>
+      </details>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>
+      <a href="https://github.com/oxisoft/oxiwatch">GitHub</a> ·
+      <a href="https://github.com/oxisoft/oxiwatch/releases">Releases</a> ·
+      <a href="https://github.com/oxisoft/oxiwatch#readme">Docs</a>
+    </p>
+    <p>OxiWatch is free and open source under the MIT license. Built by <a href="https://oxisoft.io">OxiSoft</a>.</p>
+  </div>
+</footer>
+
+</body>
+</html>
