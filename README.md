@@ -23,6 +23,10 @@ Know the moment someone logs into your server over SSH — and get a daily repor
 
 It's a single Go binary, runs as a systemd service, stores history in SQLite, and needs nothing more than a Telegram bot to start alerting.
 
+<div align="center">
+<img src="docs/assets/telegram-alert.png" alt="OxiWatch SSH login alert and daily failed-attempt report in Telegram" width="420">
+</div>
+
 ## Table of contents
 
 - [Why OxiWatch](#why-oxiwatch)

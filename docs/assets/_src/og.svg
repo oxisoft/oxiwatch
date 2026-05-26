@@ -1,0 +1,53 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="640" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#0e1530"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.12" r="0.75">
+      <stop offset="0" stop-color="#20305f" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#0b1020" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shieldg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#37d167"/>
+      <stop offset="1" stop-color="#23a14f"/>
+    </linearGradient>
+    <filter id="ds" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <rect width="1280" height="640" fill="url(#glow)"/>
+
+  <!-- logo mark -->
+  <g transform="translate(640 188) scale(1.15)" filter="url(#ds)">
+    <path d="M0 -86 L74 -56 V6 C74 56 42 88 0 104 C-42 88 -74 56 -74 6 V-56 Z" fill="url(#shieldg)"/>
+    <path d="M0 -86 L74 -56 V6 C74 56 42 88 0 104 C-42 88 -74 56 -74 6 V-56 Z" fill="none" stroke="#5cf089" stroke-opacity="0.5" stroke-width="2"/>
+    <path d="M-30 -26 L-6 0 L-30 26" fill="none" stroke="#0b1020" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="2" y1="28" x2="34" y2="28" stroke="#0b1020" stroke-width="11" stroke-linecap="round"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="640" y="408" text-anchor="middle" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="104" font-weight="800" letter-spacing="-2">
+    <tspan fill="#ffffff">Oxi</tspan><tspan fill="#37d167">Watch</tspan>
+  </text>
+
+  <!-- value prop -->
+  <text x="640" y="468" text-anchor="middle" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="37" font-weight="600" fill="#cdd6ee">
+    SSH login alerts on Telegram, the moment they happen
+  </text>
+  <text x="640" y="514" text-anchor="middle" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#8a97b8">
+    Instant alerts + daily brute-force reports with GeoIP · Debian &amp; Ubuntu
+  </text>
+
+  <!-- chips -->
+  <g font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="22" font-weight="600">
+    <rect x="404" y="556" width="160" height="44" rx="22" fill="#151d36" stroke="#232c4a"/>
+    <text x="484" y="584" fill="#cdd6ee" text-anchor="middle">Open source</text>
+    <rect x="576" y="556" width="128" height="44" rx="22" fill="#151d36" stroke="#232c4a"/>
+    <text x="640" y="584" fill="#cdd6ee" text-anchor="middle">systemd</text>
+    <rect x="716" y="556" width="160" height="44" rx="22" fill="#151d36" stroke="#232c4a"/>
+    <text x="796" y="584" fill="#cdd6ee" text-anchor="middle">Single binary</text>
+  </g>
+</svg>

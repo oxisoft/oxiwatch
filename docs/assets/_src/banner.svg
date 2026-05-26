@@ -1,0 +1,53 @@
+<svg width="1280" height="320" viewBox="0 0 1280 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="320" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#11182f"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.28" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#1b2750" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#0b1020" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shieldg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#37d167"/>
+      <stop offset="1" stop-color="#23a14f"/>
+    </linearGradient>
+    <filter id="ds" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="320" rx="0" fill="url(#bg)"/>
+  <rect width="1280" height="320" fill="url(#glow)"/>
+
+  <!-- logo mark: shield + terminal prompt -->
+  <g transform="translate(150 160)" filter="url(#ds)">
+    <path d="M0 -86 L74 -56 V6 C74 56 42 88 0 104 C-42 88 -74 56 -74 6 V-56 Z" fill="url(#shieldg)"/>
+    <path d="M0 -86 L74 -56 V6 C74 56 42 88 0 104 C-42 88 -74 56 -74 6 V-56 Z" fill="none" stroke="#5cf089" stroke-opacity="0.5" stroke-width="2"/>
+    <!-- terminal prompt mark -->
+    <path d="M-30 -26 L-6 0 L-30 26" fill="none" stroke="#0b1020" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="2" y1="28" x2="34" y2="28" stroke="#0b1020" stroke-width="11" stroke-linecap="round"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="270" y="150" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="86" font-weight="800" letter-spacing="-1">
+    <tspan fill="#ffffff">Oxi</tspan><tspan fill="#37d167">Watch</tspan>
+  </text>
+
+  <!-- tagline -->
+  <text x="272" y="206" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="31" font-weight="500" fill="#9aa6c4">
+    SSH login monitor with instant Telegram alerts for Linux
+  </text>
+
+  <!-- accent chips -->
+  <g font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="20" font-weight="600">
+    <rect x="272" y="236" width="180" height="40" rx="20" fill="#151d36" stroke="#232c4a"/>
+    <text x="362" y="262" fill="#cdd6ee" text-anchor="middle">Real-time alerts</text>
+    <rect x="466" y="236" width="168" height="40" rx="20" fill="#151d36" stroke="#232c4a"/>
+    <text x="550" y="262" fill="#cdd6ee" text-anchor="middle">Daily reports</text>
+    <rect x="648" y="236" width="132" height="40" rx="20" fill="#151d36" stroke="#232c4a"/>
+    <text x="714" y="262" fill="#cdd6ee" text-anchor="middle">GeoIP</text>
+    <rect x="794" y="236" width="170" height="40" rx="20" fill="#151d36" stroke="#232c4a"/>
+    <text x="879" y="262" fill="#cdd6ee" text-anchor="middle">Open source</text>
+  </g>
+</svg>
