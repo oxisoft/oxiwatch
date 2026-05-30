@@ -24,7 +24,7 @@ type Daemon struct {
 	logger    *slog.Logger
 	storage   *storage.Storage
 	journal   *journal.Reader
-	telegram  *notifier.Telegram
+	notifier  *notifier.Manager
 	scheduler *scheduler.Scheduler
 	geoip     *geoip.Resolver
 	geoUpdate *geoip.Updater
@@ -38,9 +38,9 @@ func New(cfg *config.Config, logger *slog.Logger, version string) (*Daemon, erro
 		return nil, err
 	}
 
-	telegram, err := notifier.NewTelegram(cfg.TelegramBotToken, cfg.TelegramChatID, cfg.ServerName)
+	notify, err := BuildNotifier(cfg, logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create telegram notifier: %w", err)
+		return nil, err
 	}
 
 	d := &Daemon{
@@ -48,7 +48,7 @@ func New(cfg *config.Config, logger *slog.Logger, version string) (*Daemon, erro
 		logger:    logger,
 		storage:   store,
 		journal:   journal.New(logger),
-		telegram:  telegram,
+		notifier:  notify,
 		scheduler: scheduler.New(logger),
 		geoUpdate: geoip.NewUpdater(cfg.GeoIPDatabasePath, logger),
 		report:    report.NewGenerator(store, cfg.ServerName, version),
@@ -62,6 +62,44 @@ func New(cfg *config.Config, logger *slog.Logger, version string) (*Daemon, erro
 	}
 
 	return d, nil
+}
+
+// BuildNotifier constructs a notification manager with every channel that is
+// fully configured. It is the single place that wires config to channels, so
+// both the daemon and the send-test command behave identically. It returns an
+// error if no channel is configured.
+func BuildNotifier(cfg *config.Config, logger *slog.Logger) (*notifier.Manager, error) {
+	mgr := notifier.NewManager(cfg.ServerName, logger)
+
+	if cfg.TelegramActive() {
+		tg, err := notifier.NewTelegram(cfg.TelegramBotToken, cfg.TelegramChatID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create telegram notifier: %w", err)
+		}
+		mgr.Add(tg)
+	}
+
+	if cfg.MatrixActive() {
+		mx, err := notifier.NewMatrix(cfg.MatrixHomeserver, cfg.MatrixRoomID, cfg.MatrixAccessToken)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create matrix notifier: %w", err)
+		}
+		mgr.Add(mx)
+	}
+
+	if cfg.EmailActive() {
+		em, err := notifier.NewEmail(cfg.EmailSMTPURL, cfg.EmailFrom, cfg.EmailTo, cfg.EmailUsername, cfg.EmailPassword)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create email notifier: %w", err)
+		}
+		mgr.Add(em)
+	}
+
+	if mgr.Count() == 0 {
+		return nil, fmt.Errorf("no notification channels configured")
+	}
+
+	return mgr, nil
 }
 
 func (d *Daemon) initGeoIP() error {
@@ -116,9 +154,9 @@ func (d *Daemon) Run() error {
 
 	go d.scheduler.Start(ctx)
 
-	d.logger.Info("daemon started")
+	d.logger.Info("daemon started", "notification_channels", d.notifier.Names())
 
-	if err := d.telegram.SendStartupMessage(d.version); err != nil {
+	if err := d.notifier.SendStartupMessage(d.version); err != nil {
 		d.logger.Warn("failed to send startup notification", "error", err)
 	}
 
@@ -170,8 +208,8 @@ func (d *Daemon) processEvent(event *parser.SSHEvent) {
 			"city", city,
 		)
 
-		if err := d.telegram.SendLoginAlert(event, country, city, warning); err != nil {
-			d.logger.Error("failed to send Telegram alert", "error", err)
+		if err := d.notifier.SendLoginAlert(event, country, city, warning); err != nil {
+			d.logger.Error("failed to send login alert", "error", err)
 		}
 	} else {
 		d.logger.Debug("failed SSH attempt",
@@ -222,7 +260,7 @@ func (d *Daemon) sendDailyReport(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return d.telegram.SendDailyReport(reportText)
+	return d.notifier.SendDailyReport(reportText)
 }
 
 func (d *Daemon) runCleanup(ctx context.Context) error {
@@ -263,7 +301,7 @@ func (d *Daemon) checkGeoIPUpdate(ctx context.Context) error {
 func (d *Daemon) shutdown() error {
 	d.logger.Info("shutting down")
 
-	if err := d.telegram.SendShutdownMessage(); err != nil {
+	if err := d.notifier.SendShutdownMessage(); err != nil {
 		d.logger.Warn("failed to send shutdown notification", "error", err)
 	}
 

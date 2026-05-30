@@ -1,0 +1,27 @@
+{
+  "telegram_enabled": true,
+  "telegram_bot_token": "123456789:ABCdefGHIjklMNOpqrSTUvwxYZ",
+  "telegram_chat_id": "-100123456789",
+
+  "matrix_enabled": false,
+  "matrix_homeserver": "https://chat.example.ch",
+  "matrix_room_id": "!roomid:chat.example.ch",
+  "matrix_access_token": "syt_xxxxxxxxxxxxxxxxxxxx",
+
+  "email_enabled": false,
+  "email_smtp_url": "smtp://mail.example.ch:587",
+  "email_from": "report@example.ch",
+  "email_to": ["alerts@example.ch"],
+  "email_username": "report@example.ch",
+  "email_password": "your-smtp-password",
+
+  "server_name": "",
+  "geoip_enabled": true,
+  "geoip_database_path": "/var/lib/oxiwatch/dbip-city-lite.mmdb",
+  "database_path": "/var/lib/oxiwatch/oxiwatch.db",
+  "daily_report_enabled": true,
+  "daily_report_time": "08:00",
+  "daily_report_timezone": "UTC",
+  "retention_days": 90,
+  "log_level": "info"
+}

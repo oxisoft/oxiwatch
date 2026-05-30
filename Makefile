@@ -21,6 +21,7 @@ lint:
 install: build
 	sudo cp oxiwatch /usr/local/bin/
 	sudo mkdir -p /etc/oxiwatch /var/lib/oxiwatch
+	sudo cp docs/config.json.example /etc/oxiwatch/config.json.example
 	sudo chown root:root /usr/local/bin/oxiwatch
 
 install-service:

@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/oxisoft/oxiwatch/internal/config"
 	"github.com/oxisoft/oxiwatch/internal/daemon"
 	"github.com/oxisoft/oxiwatch/internal/geoip"
 	"github.com/oxisoft/oxiwatch/internal/journal"
-	"github.com/oxisoft/oxiwatch/internal/notifier"
 	"github.com/oxisoft/oxiwatch/internal/report"
 	"github.com/oxisoft/oxiwatch/internal/storage"
 	"github.com/oxisoft/oxiwatch/internal/version"
@@ -73,7 +73,7 @@ Commands:
   cleanup                      Manually run retention cleanup
   config validate              Validate configuration
   config show                  Show active configuration
-  send-test                    Send test Telegram message
+  send-test                    Send test message to all configured channels
   upgrade                      Self-upgrade to latest release
   version                      Show version
   help                         Show this help
@@ -328,6 +328,12 @@ func runConfig(configPath string) {
 		if masked.TelegramBotToken != "" {
 			masked.TelegramBotToken = "***"
 		}
+		if masked.MatrixAccessToken != "" {
+			masked.MatrixAccessToken = "***"
+		}
+		if masked.EmailPassword != "" {
+			masked.EmailPassword = "***"
+		}
 
 		output, _ := json.MarshalIndent(masked, "", "  ")
 		fmt.Println(string(output))
@@ -348,15 +354,17 @@ func runSendTest(configPath string) {
 		fatal("invalid config: %v", err)
 	}
 
-	telegram, err := notifier.NewTelegram(cfg.TelegramBotToken, cfg.TelegramChatID, cfg.ServerName)
+	logger := setupLogger(cfg.LogLevel)
+
+	mgr, err := daemon.BuildNotifier(cfg, logger)
 	if err != nil {
-		fatal("failed to create telegram notifier: %v", err)
+		fatal("failed to create notifiers: %v", err)
 	}
-	if err := telegram.SendTestMessage(); err != nil {
+	if err := mgr.SendTestMessage(); err != nil {
 		fatal("failed to send test message: %v", err)
 	}
 
-	fmt.Println("Test message sent successfully")
+	fmt.Printf("Test message sent via: %s\n", strings.Join(mgr.Names(), ", "))
 }
 
 func runVersion() {

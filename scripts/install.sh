@@ -74,40 +74,143 @@ validate_chat_id() {
   return 0
 }
 
+# Escape a value for safe inclusion in a JSON string
+json_escape() {
+  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+}
+
+# Ask a yes/no question (default No). Returns 0 for yes.
+ask_yes_no() {
+  local ans
+  echo -n "$1 [y/N]: "
+  read ans < /dev/tty
+  [[ $ans =~ ^[Yy] ]]
+}
+
+# Accumulated channel config (JSON lines). Each block ends with a comma.
+CHANNELS_JSON=""
+append_channel() {
+  if [ -n "$CHANNELS_JSON" ]; then
+    CHANNELS_JSON="$CHANNELS_JSON
+$1"
+  else
+    CHANNELS_JSON="$1"
+  fi
+}
+
+configure_telegram() {
+  local token chat
+  while true; do
+    echo -n "  Telegram Bot Token: "
+    read token < /dev/tty
+    if [ -z "$token" ]; then echo "  Error: cannot be empty"; continue; fi
+    if ! validate_token "$token"; then echo "  Error: invalid format (expected 123456789:ABCdef...)"; continue; fi
+    break
+  done
+  while true; do
+    echo -n "  Telegram Chat ID: "
+    read chat < /dev/tty
+    if [ -z "$chat" ]; then echo "  Error: cannot be empty"; continue; fi
+    if ! validate_chat_id "$chat"; then echo "  Error: must be numeric (e.g. 123456789 or -100123456789)"; continue; fi
+    break
+  done
+  append_channel "  \"telegram_bot_token\": \"$(json_escape "$token")\",
+  \"telegram_chat_id\": \"$(json_escape "$chat")\","
+}
+
+configure_matrix() {
+  local hs room token
+  while true; do
+    echo -n "  Matrix Homeserver URL (e.g. https://chat.example.ch): "
+    read hs < /dev/tty
+    [ -n "$hs" ] && break; echo "  Error: cannot be empty"
+  done
+  while true; do
+    echo -n "  Matrix Room ID (e.g. !abcd:chat.example.ch): "
+    read room < /dev/tty
+    [ -n "$room" ] && break; echo "  Error: cannot be empty"
+  done
+  while true; do
+    echo -n "  Matrix Access Token: "
+    read token < /dev/tty
+    [ -n "$token" ] && break; echo "  Error: cannot be empty"
+  done
+  append_channel "  \"matrix_homeserver\": \"$(json_escape "$hs")\",
+  \"matrix_room_id\": \"$(json_escape "$room")\",
+  \"matrix_access_token\": \"$(json_escape "$token")\","
+}
+
+configure_email() {
+  local smtp from to user pass to_json rcpt first
+  while true; do
+    echo -n "  SMTP URL (e.g. smtp://mail.example.ch:587): "
+    read smtp < /dev/tty
+    [ -n "$smtp" ] && break; echo "  Error: cannot be empty"
+  done
+  while true; do
+    echo -n "  From address: "
+    read from < /dev/tty
+    [ -n "$from" ] && break; echo "  Error: cannot be empty"
+  done
+  while true; do
+    echo -n "  Recipient(s), comma-separated: "
+    read to < /dev/tty
+    [ -n "$to" ] && break; echo "  Error: cannot be empty"
+  done
+  while true; do
+    echo -n "  SMTP username: "
+    read user < /dev/tty
+    [ -n "$user" ] && break; echo "  Error: cannot be empty"
+  done
+  while true; do
+    echo -n "  SMTP password: "
+    read -s pass < /dev/tty; echo
+    [ -n "$pass" ] && break; echo "  Error: cannot be empty"
+  done
+  # Build a JSON array from the comma-separated recipient list.
+  to_json=""
+  first=1
+  local IFS=','
+  for rcpt in $to; do
+    rcpt="$(echo "$rcpt" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    [ -z "$rcpt" ] && continue
+    if [ $first -eq 1 ]; then
+      to_json="\"$(json_escape "$rcpt")\""; first=0
+    else
+      to_json="$to_json, \"$(json_escape "$rcpt")\""
+    fi
+  done
+  unset IFS
+  append_channel "  \"email_smtp_url\": \"$(json_escape "$smtp")\",
+  \"email_from\": \"$(json_escape "$from")\",
+  \"email_to\": [$to_json],
+  \"email_username\": \"$(json_escape "$user")\",
+  \"email_password\": \"$(json_escape "$pass")\","
+}
+
 # Interactive configuration
 check_tty
 echo ""
 echo "=== OxiWatch Configuration ==="
 echo ""
+echo "Set up your notification channels. At least one must be enabled."
+echo ""
 
 while true; do
-  echo -n "Telegram Bot Token: "
-  read TELEGRAM_TOKEN < /dev/tty
-  if [ -z "$TELEGRAM_TOKEN" ]; then
-    echo "Error: Bot token cannot be empty"
-    continue
+  if ask_yes_no "Configure Telegram?"; then configure_telegram; fi
+  if ask_yes_no "Configure Matrix?";   then configure_matrix;   fi
+  if ask_yes_no "Configure Email?";    then configure_email;    fi
+
+  if [ -n "$CHANNELS_JSON" ]; then
+    break
   fi
-  if ! validate_token "$TELEGRAM_TOKEN"; then
-    echo "Error: Invalid bot token format (expected: 123456789:ABCdefGHI...)"
-    continue
-  fi
-  break
+
+  echo ""
+  echo "No channel configured — you must enable at least one. Let's try again."
+  echo ""
 done
 
-while true; do
-  echo -n "Telegram Chat ID: "
-  read TELEGRAM_CHAT_ID < /dev/tty
-  if [ -z "$TELEGRAM_CHAT_ID" ]; then
-    echo "Error: Chat ID cannot be empty"
-    continue
-  fi
-  if ! validate_chat_id "$TELEGRAM_CHAT_ID"; then
-    echo "Error: Invalid chat ID (must be numeric, e.g., 123456789 or -100123456789)"
-    continue
-  fi
-  break
-done
-
+echo ""
 echo -n "Enable GeoIP lookup? [Y/n]: "
 read GEOIP_ENABLED < /dev/tty
 GEOIP_ENABLED=${GEOIP_ENABLED:-Y}
@@ -116,8 +219,7 @@ GEOIP_ENABLED=${GEOIP_ENABLED:-Y}
 # Generate config
 cat > "$CONFIG_DIR/config.json" << EOF
 {
-  "telegram_bot_token": "$TELEGRAM_TOKEN",
-  "telegram_chat_id": "$TELEGRAM_CHAT_ID",
+$CHANNELS_JSON
   "server_name": "$(hostname)",
   "geoip_enabled": $GEOIP_ENABLED,
   "geoip_database_path": "/var/lib/oxiwatch/dbip-city-lite.mmdb",

@@ -150,6 +150,9 @@ sudo systemctl start oxiwatch
 
 ## Configuration
 
+A full example with every option is in [`docs/config.json.example`](docs/config.json.example)
+(also installed to `/etc/oxiwatch/config.json.example`).
+
 Create `/etc/oxiwatch/config.json`:
 
 ```json
@@ -168,12 +171,58 @@ Create `/etc/oxiwatch/config.json`:
 }
 ```
 
+### Notification channels
+
+OxiWatch delivers the same information (login alerts, daily reports, startup/shutdown
+notices) to one or more channels. **At least one channel must be active**, or the
+daemon refuses to start. A channel becomes active once all of its fields are set; configure
+as many as you like.
+
+Each channel can be toggled with a `*_enabled` flag (`telegram_enabled`, `matrix_enabled`,
+`email_enabled`) **without clearing its credentials** — set it to `false` to pause a channel
+and `true` (or remove the flag) to resume it. When the flag is omitted, a fully configured
+channel is enabled by default.
+
+```json
+{
+  "telegram_bot_token": "123456:ABC...",
+  "telegram_chat_id": "-100123...",
+
+  "matrix_homeserver": "https://chat.example.ch",
+  "matrix_room_id": "!roomid:chat.example.ch",
+  "matrix_access_token": "syt_...",
+
+  "email_smtp_url": "smtp://mail.example.ch:587",
+  "email_from": "report@example.ch",
+  "email_to": ["alerts@example.ch"],
+  "email_username": "report@example.ch",
+  "email_password": "secret"
+}
+```
+
+- **Telegram** — bot API, HTML-formatted messages.
+- **Matrix** — posts to the room via the client-server API (`m.room.message`), with both a
+  plain-text `body` and an HTML `formatted_body`.
+- **Email** — HTML mail over SMTP with STARTTLS on the submission port (587 by default).
+  `email_to` is a list and may contain several recipients.
+
 ### Configuration options
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `telegram_bot_token` | Telegram bot token (required) | - |
-| `telegram_chat_id` | Telegram chat ID (required) | - |
+| `telegram_enabled` | Toggle Telegram without clearing credentials | true (when configured) |
+| `telegram_bot_token` | Telegram bot token | - |
+| `telegram_chat_id` | Telegram chat ID | - |
+| `matrix_enabled` | Toggle Matrix without clearing credentials | true (when configured) |
+| `matrix_homeserver` | Matrix homeserver URL (e.g. `https://chat.example.ch`) | - |
+| `matrix_room_id` | Matrix room ID (e.g. `!abc:chat.example.ch`) | - |
+| `matrix_access_token` | Matrix access token | - |
+| `email_enabled` | Toggle Email without clearing credentials | true (when configured) |
+| `email_smtp_url` | SMTP URL (e.g. `smtp://mail.example.ch:587`) | - |
+| `email_from` | Sender address | - |
+| `email_to` | List of recipient addresses | - |
+| `email_username` | SMTP auth username | - |
+| `email_password` | SMTP auth password | - |
 | `server_name` | Server name for notifications | hostname |
 | `geoip_enabled` | Enable GeoIP lookup | true |
 | `geoip_database_path` | Path to DB-IP database | /var/lib/oxiwatch/dbip-city-lite.mmdb |
