@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>OxiWatch — SSH Login Monitor with Telegram Alerts for Linux</title>
-<meta name="description" content="OxiWatch is a free, open-source SSH login monitor for Linux. Get instant Telegram alerts on every SSH login and a daily report of failed brute-force attempts, with GeoIP. Works on Debian and Ubuntu.">
+<title>OxiWatch — SSH Login Monitor with Telegram, Matrix & Email Alerts</title>
+<meta name="description" content="OxiWatch is a free, open-source SSH login monitor for Linux. Get instant alerts via Telegram, Matrix, or email on every SSH login and a daily report of failed brute-force attempts, with GeoIP. Works on Debian and Ubuntu.">
 <link rel="canonical" href="https://oxiwatch.oxisoft.io/">
 <meta name="theme-color" content="#0b1020">
 
 <!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="OxiWatch">
-<meta property="og:title" content="OxiWatch — SSH Login Monitor with Telegram Alerts for Linux">
-<meta property="og:description" content="Get an instant Telegram alert on every SSH login, plus a daily report of failed brute-force attempts with GeoIP. Free, open-source, single binary for Debian & Ubuntu.">
+<meta property="og:title" content="OxiWatch — SSH Login Monitor with Telegram, Matrix & Email Alerts">
+<meta property="og:description" content="Get an instant alert via Telegram, Matrix, or email on every SSH login, plus a daily report of failed brute-force attempts with GeoIP. Free, open-source, single binary for Debian & Ubuntu.">
 <meta property="og:url" content="https://oxiwatch.oxisoft.io/">
 <meta property="og:image" content="https://oxiwatch.oxisoft.io/assets/og.png">
 <meta property="og:image:width" content="1280">
@@ -21,8 +21,8 @@
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="OxiWatch — SSH Login Monitor with Telegram Alerts for Linux">
-<meta name="twitter:description" content="Instant Telegram alerts on every SSH login + daily report of failed brute-force attempts with GeoIP. Free & open source.">
+<meta name="twitter:title" content="OxiWatch — SSH Login Monitor with Telegram, Matrix & Email Alerts">
+<meta name="twitter:description" content="Instant alerts via Telegram, Matrix, or email on every SSH login + daily report of failed brute-force attempts with GeoIP. Free & open source.">
 <meta name="twitter:image" content="https://oxiwatch.oxisoft.io/assets/og.png">
 
 <link rel="icon" href="assets/favicon.png" type="image/png">
@@ -36,7 +36,7 @@
   "applicationCategory": "SecurityApplication",
   "applicationSubCategory": "SSH login monitor",
   "operatingSystem": "Linux (Debian, Ubuntu, systemd)",
-  "description": "OxiWatch is a free, open-source SSH login monitor for Linux servers. It sends instant Telegram alerts on every successful SSH login and a daily report of failed brute-force attempts, with GeoIP geolocation.",
+  "description": "OxiWatch is a free, open-source SSH login monitor for Linux servers. It sends instant alerts via Telegram, Matrix, or email on every successful SSH login and a daily report of failed brute-force attempts, with GeoIP geolocation.",
   "url": "https://oxiwatch.oxisoft.io/",
   "downloadUrl": "https://github.com/oxisoft/oxiwatch/releases",
   "softwareHelp": "https://github.com/oxisoft/oxiwatch#readme",
@@ -60,6 +60,11 @@
     },
     {
       "@type": "Question",
+      "name": "Can I get SSH alerts on Matrix or by email instead of Telegram?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. OxiWatch supports Telegram, Matrix, and email as notification channels, and you can enable any combination. Every active channel receives the same login alerts and daily reports, and each channel can be paused without deleting its credentials." }
+    },
+    {
+      "@type": "Question",
       "name": "Does OxiWatch replace fail2ban?",
       "acceptedAnswer": { "@type": "Answer", "text": "No. fail2ban blocks repeated failed attempts; OxiWatch tells you who actually logged in and summarizes attacks in a daily report. They solve different problems and run together on the same machine." }
     },
@@ -76,7 +81,7 @@
     {
       "@type": "Question",
       "name": "Does it monitor failed SSH login attempts too?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Failed attempts, including invalid users and pre-auth disconnects, are recorded and summarized in a daily Telegram report with the top attacker IPs." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Failed attempts, including invalid users and pre-auth disconnects, are recorded and summarized in a daily report with the top attacker IPs, delivered to your configured channels." }
     },
     {
       "@type": "Question",
@@ -204,11 +209,11 @@
 <main>
   <section class="hero" style="border-top:none;">
     <div class="wrap">
-      <h1>SSH login alerts on <span class="accent">Telegram</span>,<br>the moment they happen</h1>
+      <h1>SSH login alerts on <span class="accent">Telegram, Matrix &amp; email</span>,<br>the moment they happen</h1>
       <p class="lede">
         OxiWatch is a free, open-source <strong>SSH login monitor for Linux</strong>. Get an instant
-        Telegram notification on every successful login, plus a daily report of failed brute-force
-        attempts — with GeoIP. One binary, runs as a systemd service.
+        notification — via Telegram, Matrix, or email — on every successful login, plus a daily report
+        of failed brute-force attempts with GeoIP. One binary, runs as a systemd service.
       </p>
       <div class="btns">
         <a class="btn btn-primary" href="#install">Install in 30 seconds</a>
@@ -225,7 +230,7 @@
   <section id="screenshot">
     <div class="wrap">
       <h2>See it in action</h2>
-      <p class="sub">A real SSH login alert and the daily failed-attempt report, delivered to Telegram.</p>
+      <p class="sub">A real SSH login alert and the daily failed-attempt report — delivered to Telegram, Matrix, or your inbox.</p>
       <div style="text-align:center;">
         <img src="assets/telegram-alert.png" alt="OxiWatch SSH login alert and daily failed-attempt report in Telegram"
              style="max-width:420px; width:100%; border:1px solid var(--line); border-radius:14px;"
@@ -241,8 +246,13 @@
       <div class="grid">
         <div class="feature">
           <div class="ico">⚡</div>
-          <h3>Instant Telegram alerts</h3>
+          <h3>Instant login alerts</h3>
           <p>Get notified the second someone logs in over SSH — with username, source IP, and country.</p>
+        </div>
+        <div class="feature">
+          <div class="ico">📨</div>
+          <h3>Telegram, Matrix &amp; email</h3>
+          <p>Send alerts to a Telegram chat, a Matrix room, or your inbox — enable one channel or several at once.</p>
         </div>
         <div class="feature">
           <div class="ico">🛡️</div>
@@ -279,16 +289,16 @@
       <p class="sub">From zero to live alerts in three steps.</p>
       <div class="steps">
         <div class="step">
-          <h3>Create a Telegram bot</h3>
-          <p>Talk to <a href="https://t.me/BotFather">@BotFather</a> for a token and grab your chat ID from <a href="https://t.me/userinfobot">@userinfobot</a>.</p>
+          <h3>Pick a channel</h3>
+          <p>Set up a Telegram bot, a Matrix room, or an SMTP account — whichever you prefer, or all three.</p>
         </div>
         <div class="step">
           <h3>Run the installer</h3>
-          <p>The script downloads the right binary, asks for your bot token and chat ID, and sets up the systemd service.</p>
+          <p>The script downloads the right binary, walks you through each notification channel you want, and sets up the systemd service.</p>
         </div>
         <div class="step">
           <h3>Get alerted</h3>
-          <p>OxiWatch watches SSH in real time. Every successful login pings your Telegram instantly; failed attempts arrive in the daily report.</p>
+          <p>OxiWatch watches SSH in real time. Every successful login pings your channels instantly; failed attempts arrive in the daily report.</p>
         </div>
       </div>
     </div>
@@ -302,7 +312,7 @@
         <tr><th></th><th>fail2ban</th><th>OxiWatch</th></tr>
         <tr><td>Role</td><td>Prevention — bans IPs after failures</td><td>Visibility — alerts &amp; summarizes</td></tr>
         <tr><td>Acts on</td><td>Failed attempts (firewall bans)</td><td>Successful logins + failed attempts</td></tr>
-        <tr><td>Notifies you</td><td>Not out of the box</td><td>Telegram, in real time</td></tr>
+        <tr><td>Notifies you</td><td>Not out of the box</td><td>Telegram, Matrix or email, in real time</td></tr>
         <tr><td>Tells you who got in</td><td>No</td><td>Yes</td></tr>
       </table>
       <p style="color:var(--muted); margin-top:18px; text-align:center;">
@@ -314,11 +324,15 @@
   <section id="faq">
     <div class="wrap">
       <h2>Frequently asked questions</h2>
-      <p class="sub">SSH monitoring, Telegram alerts, GeoIP, and more.</p>
+      <p class="sub">SSH monitoring, Telegram / Matrix / email alerts, GeoIP, and more.</p>
 
       <details open>
         <summary>How do I get a Telegram notification when someone logs into my server over SSH?</summary>
         <p>Install OxiWatch and point it at a Telegram bot. It sends an instant message on every successful SSH login — including the username, source IP, and country.</p>
+      </details>
+      <details>
+        <summary>Can I get SSH alerts on Matrix or by email instead of Telegram?</summary>
+        <p>Yes. OxiWatch supports Telegram, Matrix, and email as notification channels, and you can enable any combination — every active channel receives the same login alerts and daily reports. Each channel can be paused with an <code>*_enabled</code> flag without deleting its credentials.</p>
       </details>
       <details>
         <summary>Does OxiWatch replace fail2ban?</summary>
@@ -338,11 +352,11 @@
       </details>
       <details>
         <summary>Does it monitor failed SSH login attempts too?</summary>
-        <p>Yes. Failed attempts — including invalid users and pre-auth disconnects — are recorded and summarized in a daily Telegram report with the top attacker IPs.</p>
+        <p>Yes. Failed attempts — including invalid users and pre-auth disconnects — are recorded and summarized in a daily report with the top attacker IPs, delivered to whichever channels you enable.</p>
       </details>
       <details>
         <summary>Can I monitor multiple servers in one Telegram chat?</summary>
-        <p>Yes. Install OxiWatch on each server and point them at the same chat. Set <code>server_name</code> so each alert is clearly labeled.</p>
+        <p>Yes. Install OxiWatch on each server and point them at the same chat, Matrix room, or inbox. Set <code>server_name</code> so each alert is clearly labeled.</p>
       </details>
       <details>
         <summary>Is OxiWatch free and open source?</summary>
