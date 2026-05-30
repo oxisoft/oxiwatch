@@ -19,9 +19,9 @@ Know the moment someone logs into your server over SSH — and get a daily repor
 
 ---
 
-**OxiWatch** is a lightweight, self-hosted SSH login monitor for Debian and Ubuntu servers. It watches the systemd journal in real time and sends an **instant Telegram notification** every time someone successfully logs in over SSH. Each morning it delivers a **daily report of failed SSH login attempts** — who tried, how often, and where they came from (GeoIP) — so you can spot brute-force attacks at a glance.
+**OxiWatch** is a lightweight, self-hosted SSH login monitor for Debian and Ubuntu servers. It watches the systemd journal in real time and sends an **instant notification — via Telegram, Matrix, or email** — every time someone successfully logs in over SSH. Each morning it delivers a **daily report of failed SSH login attempts** — who tried, how often, and where they came from (GeoIP) — so you can spot brute-force attacks at a glance.
 
-It's a single Go binary, runs as a systemd service, stores history in SQLite, and needs nothing more than a Telegram bot to start alerting.
+It's a single Go binary, runs as a systemd service, stores history in SQLite, and needs nothing more than a Telegram bot, a Matrix room, or an SMTP account to start alerting. Enable as many channels as you like.
 
 <div align="center">
 <img src="docs/assets/telegram-alert.png" alt="OxiWatch SSH login alert and daily failed-attempt report in Telegram" width="420">
@@ -40,6 +40,8 @@ It's a single Go binary, runs as a systemd service, stores history in SQLite, an
 - [Usage](#usage)
 - [GeoIP setup](#geoip-setup)
 - [Telegram bot setup](#telegram-bot-setup)
+- [Matrix setup](#matrix-setup)
+- [Email setup](#email-setup)
 - [FAQ](#faq)
 - [About](#about)
 
@@ -49,8 +51,9 @@ If you run a Linux server exposed to the internet, SSH is constantly probed. Mos
 
 Use OxiWatch to:
 
-- **Get a Telegram alert the instant someone logs in over SSH** — including the username, source IP, and country.
-- **Monitor SSH logins across one or many Linux servers** from a single Telegram chat.
+- **Get an alert the instant someone logs in over SSH** — via Telegram, Matrix, or email — including the username, source IP, and country.
+- **Choose your notification channel** — Telegram, a Matrix room, email, or several at once.
+- **Monitor SSH logins across one or many Linux servers** from a single chat, room, or inbox.
 - **Catch SSH brute-force attacks** with a daily summary of failed login attempts and your top attackers.
 - **See where login attempts come from** with built-in GeoIP geolocation (no API key required).
 - **Keep an audit trail** of successful logins in a local SQLite database with configurable retention.
@@ -61,7 +64,7 @@ If you've ever searched for "*how to get a Telegram notification on SSH login*",
 ## Features
 
 - **Real-time SSH login monitoring** via the systemd journal (`journalctl -u ssh`)
-- **Instant Telegram alerts** for every successful SSH login
+- **Instant alerts via Telegram, Matrix, or email** for every successful SSH login — enable one or several channels
 - **Daily reports of failed login attempts** with top attacker IPs and counts
 - **GeoIP geolocation** of source IPs (optional, DB-IP Lite — no registration or license key)
 - **SQLite storage** with configurable retention
@@ -78,7 +81,7 @@ If you've ever searched for "*how to get a Telegram notification on SSH login*",
 |---|---|---|
 | Role | **Prevention** — bans IPs after repeated failures | **Visibility** — alerts you to logins and summarizes attacks |
 | Acts on | Failed attempts (firewall bans) | Successful logins (instant alert) + failed attempts (daily report) |
-| Notifies you | Not out of the box | Telegram, in real time |
+| Notifies you | Not out of the box | Telegram, Matrix or email, in real time |
 | Tells you *who got in* | No | Yes |
 
 fail2ban blocks the brute-forcers; OxiWatch tells you the moment an authorized (or unauthorized) user actually gets a shell, and gives you the morning rundown of what was thrown at the box. Run both: fail2ban keeps attackers out, OxiWatch keeps you informed.
@@ -86,7 +89,7 @@ fail2ban blocks the brute-forcers; OxiWatch tells you the moment an authorized (
 ## Requirements
 
 - Linux with **systemd** (tested on Debian 12/13; works on Ubuntu and other Debian-based systems)
-- A **Telegram bot token and chat ID** ([setup below](#telegram-bot-setup))
+- At least one notification channel: a **Telegram bot token and chat ID** ([setup below](#telegram-bot-setup)), a **Matrix homeserver/room/access token**, and/or an **SMTP account** for email
 - Go 1.21+ *(only if building from source)*
 
 ## Quick install
@@ -107,7 +110,7 @@ sudo bash /tmp/install.sh
 The installer will:
 
 - Download the latest release for your architecture
-- Ask for your Telegram bot token and chat ID
+- Walk you through each notification channel (Telegram, Matrix, email) and prompt for the ones you choose to enable
 - Ask if you want GeoIP geolocation enabled
 - Create the configuration file
 - Install and enable the systemd service
@@ -297,14 +300,53 @@ oxiwatch geoip status
 
 1. Create a bot with [@BotFather](https://t.me/BotFather)
 2. Get your chat ID (send a message to [@userinfobot](https://t.me/userinfobot))
-3. Add the bot token and chat ID to your config
+3. Add the bot token and chat ID to your config (`telegram_bot_token`, `telegram_chat_id`)
 4. Test with `oxiwatch send-test`
+
+## Matrix setup
+
+OxiWatch posts to a Matrix room using the client-server API, so it works with any
+homeserver (Synapse, Dendrite, a hosted server, etc.).
+
+1. Create (or pick) a room and invite the account OxiWatch will post as.
+2. Get the **room ID** — in Element: *Room settings → Advanced → Internal room ID* (looks like `!abcd1234:your.server`).
+3. Get an **access token** for the posting account — in Element: *Settings → Help & About → Advanced → Access Token*, or log in via the API:
+   ```bash
+   curl -XPOST 'https://your.server/_matrix/client/r0/login' \
+     --data '{"type":"m.login.password","user":"oxiwatch","password":"..."}'
+   ```
+4. Add `matrix_homeserver` (e.g. `https://your.server`), `matrix_room_id`, and `matrix_access_token` to your config.
+5. Test with `oxiwatch send-test`.
+
+> Access tokens don't expire until you log the session out, so keep the token secret and avoid logging out that session from another client.
+
+## Email setup
+
+OxiWatch sends HTML email over SMTP with STARTTLS on the submission port (587 by default).
+
+1. Use an account that can send mail (a mailbox or relay account on your provider).
+2. Add the email fields to your config:
+   - `email_smtp_url` — e.g. `smtp://mail.example.ch:587`
+   - `email_from` — sender address
+   - `email_to` — list of recipients, e.g. `["alerts@example.ch"]`
+   - `email_username` / `email_password` — SMTP authentication
+3. Test with `oxiwatch send-test`.
+
+> Tip: keep `/etc/oxiwatch/config.json` readable only where needed, since it holds the SMTP password. Set permissions with `chmod 600` if you store credentials there.
 
 ## FAQ
 
 ### How do I get a Telegram notification when someone logs into my server over SSH?
 
 Install OxiWatch, point it at a Telegram bot, and it sends an instant message on every successful SSH login — including the username, source IP, and country. See [Quick install](#quick-install).
+
+### Can I get SSH alerts on Matrix or by email instead of Telegram?
+
+Yes. OxiWatch supports Telegram, Matrix, and email as notification channels, and you can enable any combination of them — every active channel receives the same alerts and daily reports. See [Matrix setup](#matrix-setup) and [Email setup](#email-setup).
+
+### Can I send notifications to more than one channel at once?
+
+Yes. Configure as many channels as you like; each one gets the full set of notifications. A channel can be paused at any time with its `*_enabled` flag without deleting its credentials. At least one channel must be active or the daemon won't start.
 
 ### Does OxiWatch replace fail2ban?
 
