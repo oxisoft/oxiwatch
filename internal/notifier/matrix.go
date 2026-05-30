@@ -50,7 +50,10 @@ func (m *Matrix) Send(msg Message) error {
 	}
 	if msg.HTML != "" {
 		payload["format"] = "org.matrix.custom.html"
-		payload["formatted_body"] = msg.HTML
+		// In HTML a newline is just whitespace, so convert the layout newlines
+		// into <br> or the whole message renders on a single line. The
+		// plain-text body above keeps its newlines for non-HTML clients.
+		payload["formatted_body"] = strings.ReplaceAll(msg.HTML, "\n", "<br>\n")
 	}
 
 	body, err := json.Marshal(payload)
