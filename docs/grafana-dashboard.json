@@ -26,7 +26,7 @@
   "time": { "from": "now-24h", "to": "now" },
   "timepicker": {},
   "timezone": "",
-  "title": "OxiWatch: SSH Login Monitor",
+  "title": "OxiWatch SSH Login Monitor",
   "uid": "oxiwatch-ssh",
   "version": 1,
   "weekStart": "",

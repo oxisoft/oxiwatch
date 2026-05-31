@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/banner.png" alt="OxiWatch: SSH login monitor with Telegram, Matrix and email alerts for Linux" width="100%">
+<img src="docs/assets/banner.png" alt="OxiWatch SSH login monitor with Telegram, Matrix and email alerts for Linux" width="100%">
 
 # OxiWatch
 
