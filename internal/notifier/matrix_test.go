@@ -85,6 +85,9 @@ func TestMatrixSend(t *testing.T) {
 	if !strings.Contains(formatted, "<br>") {
 		t.Errorf("formatted_body %q does not contain <br> for newline", formatted)
 	}
+	if !strings.HasPrefix(formatted, "<hr>") {
+		t.Errorf("formatted_body %q should start with <hr> separator", formatted)
+	}
 }
 
 func TestMatrixSendNon2xxError(t *testing.T) {

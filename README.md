@@ -4,7 +4,7 @@
 
 # OxiWatch
 
-### SSH login monitor with instant Telegram alerts for Linux servers
+### SSH login monitor with instant Telegram, Matrix and email alerts for Linux servers
 
 Know the moment someone logs into your server over SSH, and get a daily report of every brute-force attempt that didn't get in.
 

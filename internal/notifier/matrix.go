@@ -53,7 +53,9 @@ func (m *Matrix) Send(msg Message) error {
 		// In HTML a newline is just whitespace, so convert the layout newlines
 		// into <br> or the whole message renders on a single line. The
 		// plain-text body above keeps its newlines for non-HTML clients.
-		payload["formatted_body"] = strings.ReplaceAll(msg.HTML, "\n", "<br>\n")
+		// Prepend a horizontal rule so consecutive bot messages are clearly
+		// separated in clients that group messages from the same sender.
+		payload["formatted_body"] = "<hr>\n" + strings.ReplaceAll(msg.HTML, "\n", "<br>\n")
 	}
 
 	body, err := json.Marshal(payload)

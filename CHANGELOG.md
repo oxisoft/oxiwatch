@@ -7,6 +7,9 @@
 - Detect truncated downloads by comparing the received size against `Content-Length`.
 - GeoIP downloads no longer use a single whole-request timeout (which aborted the ~60 MB download on slow links); connection/response-header timeouts are used instead so slow-but-progressing downloads complete.
 
+### Changed
+- Matrix messages now start with a horizontal rule so consecutive bot messages are clearly separated in clients that group messages from the same sender.
+
 ### Added
 - `oxiwatch geoip lookup <ip>`: verbose, post-install troubleshooting for location detection. Shows the database path/size/build date, whether it opens, the resolved country/city, and the full decoded record.
 
