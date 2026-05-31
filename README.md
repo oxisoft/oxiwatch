@@ -12,7 +12,7 @@ Know the moment someone logs into your server over SSH — and get a daily repor
 [![Coverage](https://img.shields.io/badge/coverage-45.8%25-yellow)](https://github.com/oxisoft/oxiwatch/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/oxisoft/oxiwatch?sort=semver&color=2ea44f)](https://github.com/oxisoft/oxiwatch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.23%2B-00ADD8?logo=go&logoColor=white)](go.mod)
+[![Go](https://img.shields.io/badge/Go-1.25%2B-00ADD8?logo=go&logoColor=white)](go.mod)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%2F%20systemd-333)](#requirements)
 
 **[Website](https://oxiwatch.oxisoft.io) · [Install](#quick-install) · [Configuration](#configuration) · [FAQ](#faq)**
@@ -93,7 +93,7 @@ fail2ban blocks the brute-forcers; OxiWatch tells you the moment an authorized (
 
 - Linux with **systemd** (tested on Debian 12/13; works on Ubuntu and other Debian-based systems)
 - At least one notification channel: a **Telegram bot token and chat ID** ([setup below](#telegram-bot-setup)), a **Matrix homeserver/room/access token**, and/or an **SMTP account** for email
-- Go 1.23+ *(only if building from source)*
+- Go 1.25+ *(only if building from source)*
 
 ## Quick install
 
