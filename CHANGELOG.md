@@ -3,12 +3,12 @@
 ## v0.4.2 - 2026-05-31
 
 ### Fixed
-- GeoIP auto-update could leave a **corrupt/truncated database** (locations stopped resolving): the gzip was extracted directly over the live database file, so a partial or short download destroyed the working copy. Updates now extract to a temporary file, verify it opens as a valid mmdb, and only then atomically replace the live database — a bad download can no longer corrupt it.
+- GeoIP auto-update could leave a **corrupt/truncated database** (locations stopped resolving): the gzip was extracted directly over the live database file, so a partial or short download destroyed the working copy. Updates now extract to a temporary file, verify it opens as a valid mmdb, and only then atomically replace the live database, so a bad download can no longer corrupt it.
 - Detect truncated downloads by comparing the received size against `Content-Length`.
 - GeoIP downloads no longer use a single whole-request timeout (which aborted the ~60 MB download on slow links); connection/response-header timeouts are used instead so slow-but-progressing downloads complete.
 
 ### Added
-- `oxiwatch geoip lookup <ip>` — verbose, post-install troubleshooting for location detection: shows the database path/size/build date, whether it opens, the resolved country/city, and the full decoded record.
+- `oxiwatch geoip lookup <ip>`: verbose, post-install troubleshooting for location detection. Shows the database path/size/build date, whether it opens, the resolved country/city, and the full decoded record.
 
 ## v0.4.0 - 2026-05-31
 
@@ -17,7 +17,7 @@
 - Every `oxiwatch_*` metric carries a constant `server` label (from `server_name`) so a single Prometheus can scrape many hosts and distinguish them
 - Metrics exposed: `oxiwatch_ssh_login_attempts_total{result,method}`, `oxiwatch_ssh_invalid_user_attempts_total`, `oxiwatch_ssh_attempts_by_country_total{country}`, `oxiwatch_build_info{version}`, and `oxiwatch_start_time_seconds`
 - Example Grafana dashboard at `docs/grafana-dashboard.json`
-- Unit test suite across all packages (parser, config, storage, notifier, metrics, report, scheduler, journal, geoip, daemon, version); core logic packages now 80–100% covered
+- Unit test suite across all packages (parser, config, storage, notifier, metrics, report, scheduler, journal, geoip, daemon, version); core logic packages now 80-100% covered
 - GitHub Actions CI (`go vet` + `go test -race` with coverage) that auto-updates the README coverage badge; new `make test-race` / `make cover` / `make cover-html` targets
 
 ### Security
@@ -29,7 +29,7 @@
 - Journal reader tolerates long lines (1 MB) instead of aborting and stopping monitoring
 
 ### Fixed
-- Matrix messages rendered on a single line because HTML ignores newlines — the formatted body now converts newlines to `<br>` (the plain-text body is unchanged)
+- Matrix messages rendered on a single line because HTML ignores newlines. The formatted body now converts newlines to `<br>` (the plain-text body is unchanged)
 
 ## v0.3.0 - 2026-05-29
 

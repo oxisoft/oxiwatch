@@ -206,7 +206,7 @@ while true; do
   fi
 
   echo ""
-  echo "No channel configured — you must enable at least one. Let's try again."
+  echo "No channel configured. You must enable at least one. Let's try again."
   echo ""
 done
 
@@ -244,7 +244,7 @@ $CHANNELS_JSON
 }
 EOF
 chown oxiwatch:oxiwatch "$CONFIG_DIR/config.json"
-# Secrets live here (bot tokens, Matrix access token, SMTP password) — keep it
+# Secrets live here (bot tokens, Matrix access token, SMTP password), keep it
 # readable only by the oxiwatch service user (and root), not world-readable.
 chmod 600 "$CONFIG_DIR/config.json"
 

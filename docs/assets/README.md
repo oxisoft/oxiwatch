@@ -5,15 +5,15 @@
 | `banner.png` | README header | 1280×320 | ✅ generated |
 | `og.png` | Social preview (GitHub + landing page OG/Twitter card) | 1280×640 | ✅ generated |
 | `favicon.png` | Landing page favicon | 256×256 | ✅ generated |
-| `telegram-alert.png` | README + landing-page screenshot | ~420–800px wide | ⬜ **you add this** |
+| `telegram-alert.png` | README + landing-page screenshot | ~420-800px wide | ⬜ **you add this** |
 
-The generated images are vector-sourced from `_src/*.svg` — edit the SVG and re-run the
+The generated images are vector-sourced from `_src/*.svg`. Edit the SVG and re-run the
 render command below to regenerate.
 
 ## The one image to add: `telegram-alert.png`
 
 - **Place it here:** `docs/assets/telegram-alert.png` (exact name, lowercase).
-- **What to capture:** a real OxiWatch message in Telegram — ideally one successful-login
+- **What to capture:** a real OxiWatch message in Telegram, ideally one successful-login
   alert and/or the daily failed-attempt report in the same shot.
 - **Size:** anything from ~420px to ~800px wide; portrait phone-screenshot crop looks best.
 - **Privacy:** blur or redact real server names, usernames, and your own IPs before publishing.
