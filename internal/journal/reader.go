@@ -58,6 +58,9 @@ func (r *Reader) Start(ctx context.Context) error {
 		defer close(r.events)
 
 		scanner := bufio.NewScanner(stdout)
+		// Allow long journal lines (default cap is 64KB); an oversized line
+		// would otherwise abort the scan and stop monitoring.
+		scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 		for scanner.Scan() {
 			line := scanner.Text()
 			if event := r.parseJournalLine(line); event != nil {
@@ -130,6 +133,7 @@ func ReadRecent(n int) ([]TestResult, error) {
 
 	var results []TestResult
 	scanner := bufio.NewScanner(bytes.NewReader(output))
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	for scanner.Scan() {
 		line := scanner.Text()
 		if line == "" {

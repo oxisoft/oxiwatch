@@ -23,5 +23,8 @@
   "daily_report_time": "08:00",
   "daily_report_timezone": "UTC",
   "retention_days": 90,
-  "log_level": "info"
+  "log_level": "info",
+
+  "metrics_enabled": false,
+  "metrics_listen": "127.0.0.1:9184"
 }

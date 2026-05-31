@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.4.0 - 2026-05-31
+
+### Added
+- Prometheus metrics exporter: opt-in `/metrics` HTTP endpoint configured via `metrics_enabled` and `metrics_listen` (default `127.0.0.1:9184`), with matching `OXIWATCH_METRICS_ENABLED` / `OXIWATCH_METRICS_LISTEN` environment overrides
+- Every `oxiwatch_*` metric carries a constant `server` label (from `server_name`) so a single Prometheus can scrape many hosts and distinguish them
+- Metrics exposed: `oxiwatch_ssh_login_attempts_total{result,method}`, `oxiwatch_ssh_invalid_user_attempts_total`, `oxiwatch_ssh_attempts_by_country_total{country}`, `oxiwatch_build_info{version}`, and `oxiwatch_start_time_seconds`
+- Example Grafana dashboard at `docs/grafana-dashboard.json`
+- Unit test suite across all packages (parser, config, storage, notifier, metrics, report, scheduler, journal, geoip, daemon, version); core logic packages now 80–100% covered
+- GitHub Actions CI (`go vet` + `go test -race` with coverage) that auto-updates the README coverage badge; new `make test-race` / `make cover` / `make cover-html` targets
+
+### Security
+- Installer now writes `/etc/oxiwatch/config.json` as `0600` (was `0644`) so bot tokens, the Matrix access token, and the SMTP password are no longer world-readable
+- Matrix access token is now sent in an `Authorization: Bearer` header instead of the URL query string, preventing it from leaking into error logs, homeserver access logs, or proxies
+- Hardened the systemd unit (`NoNewPrivileges`, `ProtectSystem=strict`, empty capability set, `SystemCallFilter=@system-service`, namespace/address-family restrictions, etc.)
+- Metrics HTTP server now sets read/write/idle timeouts to resist slow-client resource exhaustion
+- GeoIP downloads use a bounded HTTP timeout so a hung server can't block daemon startup
+- Journal reader tolerates long lines (1 MB) instead of aborting and stopping monitoring
+
+### Fixed
+- Matrix messages rendered on a single line because HTML ignores newlines — the formatted body now converts newlines to `<br>` (the plain-text body is unchanged)
+
 ## v0.3.0 - 2026-05-29
 
 ### Added

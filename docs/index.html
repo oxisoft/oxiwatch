@@ -85,6 +85,11 @@
     },
     {
       "@type": "Question",
+      "name": "Can I monitor OxiWatch with Prometheus and Grafana?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Enable the built-in /metrics endpoint and Prometheus can scrape SSH login and brute-force counters. Every metric is labeled with the server name, so one Prometheus can watch your whole fleet, and a ready-to-import Grafana dashboard ships with the project." }
+    },
+    {
+      "@type": "Question",
       "name": "Is OxiWatch free and open source?",
       "acceptedAnswer": { "@type": "Answer", "text": "Yes. OxiWatch is MIT licensed and free to use." }
     }
@@ -275,6 +280,11 @@
           <p>Keeps an audit trail of logins with configurable retention. Your data stays on your server.</p>
         </div>
         <div class="feature">
+          <div class="ico">📊</div>
+          <h3>Prometheus &amp; Grafana</h3>
+          <p>Optional <code>/metrics</code> endpoint exposes login and attack counters — labeled per server — with a ready-to-import Grafana dashboard.</p>
+        </div>
+        <div class="feature">
           <div class="ico">🔄</div>
           <h3>Self-upgrading</h3>
           <p>A single static binary that updates itself from GitHub releases with <code>oxiwatch upgrade</code>.</p>
@@ -357,6 +367,10 @@
       <details>
         <summary>Can I monitor multiple servers in one Telegram chat?</summary>
         <p>Yes. Install OxiWatch on each server and point them at the same chat, Matrix room, or inbox. Set <code>server_name</code> so each alert is clearly labeled.</p>
+      </details>
+      <details>
+        <summary>Can I monitor OxiWatch with Prometheus and Grafana?</summary>
+        <p>Yes. Enable the built-in <code>/metrics</code> endpoint and Prometheus can scrape SSH login and brute-force counters. Every metric is labeled with the server name, so one Prometheus can watch your whole fleet, and a ready-to-import Grafana dashboard ships with the project.</p>
       </details>
       <details>
         <summary>Is OxiWatch free and open source?</summary>

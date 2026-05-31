@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test with coverage
+        run: go test -race -covermode=atomic -coverprofile=coverage.out ./...
+
+      - name: Compute total coverage
+        id: cov
+        run: |
+          pct=$(go tool cover -func=coverage.out | awk '/^total:/ {print $3}' | tr -d '%')
+          echo "pct=$pct" >> "$GITHUB_OUTPUT"
+          echo "Total coverage: ${pct}%"
+
+      - name: Update coverage badge in README
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          pct='${{ steps.cov.outputs.pct }}'
+          # Pick a color band for the badge.
+          whole=${pct%.*}
+          if   [ "$whole" -ge 90 ]; then color=brightgreen
+          elif [ "$whole" -ge 75 ]; then color=green
+          elif [ "$whole" -ge 60 ]; then color=yellowgreen
+          elif [ "$whole" -ge 40 ]; then color=yellow
+          elif [ "$whole" -ge 20 ]; then color=orange
+          else color=red
+          fi
+          sed -i -E "s#(img\.shields\.io/badge/coverage-)[A-Za-z0-9.%]*-[a-z]*#\1${pct}%25-${color}#" README.md
+
+      - name: Commit badge update
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          if git diff --quiet -- README.md; then
+            echo "Coverage badge unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "ci: update coverage badge [skip ci]"
+          git push

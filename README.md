@@ -8,9 +8,11 @@
 
 Know the moment someone logs into your server over SSH — and get a daily report of every brute-force attempt that didn't.
 
+[![CI](https://github.com/oxisoft/oxiwatch/actions/workflows/ci.yml/badge.svg)](https://github.com/oxisoft/oxiwatch/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-45.8%25-yellow)](https://github.com/oxisoft/oxiwatch/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/oxisoft/oxiwatch?sort=semver&color=2ea44f)](https://github.com/oxisoft/oxiwatch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.21%2B-00ADD8?logo=go&logoColor=white)](go.mod)
+[![Go](https://img.shields.io/badge/Go-1.23%2B-00ADD8?logo=go&logoColor=white)](go.mod)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%2F%20systemd-333)](#requirements)
 
 **[Website](https://oxiwatch.oxisoft.io) · [Install](#quick-install) · [Configuration](#configuration) · [FAQ](#faq)**
@@ -42,6 +44,7 @@ It's a single Go binary, runs as a systemd service, stores history in SQLite, an
 - [Telegram bot setup](#telegram-bot-setup)
 - [Matrix setup](#matrix-setup)
 - [Email setup](#email-setup)
+- [Prometheus metrics](#prometheus-metrics)
 - [FAQ](#faq)
 - [About](#about)
 
@@ -90,7 +93,7 @@ fail2ban blocks the brute-forcers; OxiWatch tells you the moment an authorized (
 
 - Linux with **systemd** (tested on Debian 12/13; works on Ubuntu and other Debian-based systems)
 - At least one notification channel: a **Telegram bot token and chat ID** ([setup below](#telegram-bot-setup)), a **Matrix homeserver/room/access token**, and/or an **SMTP account** for email
-- Go 1.21+ *(only if building from source)*
+- Go 1.23+ *(only if building from source)*
 
 ## Quick install
 
@@ -112,6 +115,7 @@ The installer will:
 - Download the latest release for your architecture
 - Walk you through each notification channel (Telegram, Matrix, email) and prompt for the ones you choose to enable
 - Ask if you want GeoIP geolocation enabled
+- Ask whether to expose Prometheus metrics and on which address
 - Create the configuration file
 - Install and enable the systemd service
 
@@ -235,6 +239,8 @@ channel is enabled by default.
 | `daily_report_timezone` | Timezone for daily report | UTC |
 | `retention_days` | Days to keep records | 90 |
 | `log_level` | Log level (debug, info, warn, error) | info |
+| `metrics_enabled` | Expose a Prometheus `/metrics` endpoint | false |
+| `metrics_listen` | Address the metrics endpoint binds to | 127.0.0.1:9184 |
 
 All options can be overridden via environment variables with the `OXIWATCH_` prefix (e.g., `OXIWATCH_TELEGRAM_BOT_TOKEN`).
 
@@ -333,6 +339,47 @@ OxiWatch sends HTML email over SMTP with STARTTLS on the submission port (587 by
 3. Test with `oxiwatch send-test`.
 
 > Tip: keep `/etc/oxiwatch/config.json` readable only where needed, since it holds the SMTP password. Set permissions with `chmod 600` if you store credentials there.
+
+## Prometheus metrics
+
+OxiWatch can expose its SSH activity as Prometheus metrics. Enable it in the config:
+
+```json
+{
+  "metrics_enabled": true,
+  "metrics_listen": "127.0.0.1:9184"
+}
+```
+
+This serves an HTTP `/metrics` endpoint. Every `oxiwatch_*` series carries a constant
+`server` label (taken from `server_name`), so a single Prometheus can scrape many hosts
+and tell them apart.
+
+| Metric | Type | Labels | Meaning |
+|--------|------|--------|---------|
+| `oxiwatch_ssh_login_attempts_total` | counter | `server`, `result`, `method` | SSH auth attempts (`result` = success/failure) |
+| `oxiwatch_ssh_invalid_user_attempts_total` | counter | `server` | Attempts for non-existent users |
+| `oxiwatch_ssh_attempts_by_country_total` | counter | `server`, `country` | Attempts by source country (GeoIP) |
+| `oxiwatch_build_info` | gauge | `server`, `version` | Running version (value is always 1) |
+| `oxiwatch_start_time_seconds` | gauge | `server` | Daemon start time (Unix seconds) |
+
+> **Security:** the endpoint is unauthenticated. Keep it bound to `127.0.0.1` (or a private
+> interface) and scrape it over a trusted network or behind a reverse proxy — don't expose it
+> to the internet. By convention, **usernames and source IPs are deliberately *not* metric
+> labels** to avoid Prometheus cardinality blow-up; that detail lives in the SQLite history.
+
+Example Prometheus scrape config:
+
+```yaml
+scrape_configs:
+  - job_name: oxiwatch
+    static_configs:
+      - targets: ["server-1.example.ch:9184", "server-2.example.ch:9184"]
+```
+
+A ready-to-import **Grafana dashboard** is provided at
+[`docs/grafana-dashboard.json`](docs/grafana-dashboard.json) — import it in Grafana and pick
+your Prometheus data source.
 
 ## FAQ
 

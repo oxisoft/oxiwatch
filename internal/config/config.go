@@ -40,6 +40,9 @@ type Config struct {
 	DailyReportTimezone string `json:"daily_report_timezone"`
 	RetentionDays       int    `json:"retention_days"`
 	LogLevel            string `json:"log_level"`
+
+	MetricsEnabled bool   `json:"metrics_enabled"`
+	MetricsListen  string `json:"metrics_listen"`
 }
 
 func DefaultConfig() *Config {
@@ -54,6 +57,8 @@ func DefaultConfig() *Config {
 		DailyReportTimezone: "UTC",
 		RetentionDays:       90,
 		LogLevel:            "info",
+		MetricsEnabled:      false,
+		MetricsListen:       "127.0.0.1:9184",
 	}
 }
 
@@ -156,6 +161,12 @@ func applyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("OXIWATCH_LOG_LEVEL"); v != "" {
 		cfg.LogLevel = v
 	}
+	if v := os.Getenv("OXIWATCH_METRICS_ENABLED"); v != "" {
+		cfg.MetricsEnabled = strings.ToLower(v) == "true" || v == "1"
+	}
+	if v := os.Getenv("OXIWATCH_METRICS_LISTEN"); v != "" {
+		cfg.MetricsListen = v
+	}
 }
 
 // TelegramConfigured reports whether the Telegram channel has all its fields set.
@@ -226,6 +237,10 @@ func (c *Config) Validate() error {
 
 	if !c.TelegramActive() && !c.MatrixActive() && !c.EmailActive() {
 		return fmt.Errorf("at least one notification channel must be configured and enabled (telegram, matrix or email)")
+	}
+
+	if c.MetricsEnabled && c.MetricsListen == "" {
+		return fmt.Errorf("metrics_listen is required when metrics_enabled is true")
 	}
 
 	return nil

@@ -18,12 +18,16 @@ const (
 type Updater struct {
 	dbPath string
 	logger *slog.Logger
+	client *http.Client
 }
 
 func NewUpdater(dbPath string, logger *slog.Logger) *Updater {
 	return &Updater{
 		dbPath: dbPath,
 		logger: logger,
+		// Bounded timeout so a hung db-ip.com connection can't block daemon
+		// startup (initGeoIP runs synchronously) or wedge the monthly updater.
+		client: &http.Client{Timeout: 5 * time.Minute},
 	}
 }
 
@@ -53,7 +57,7 @@ func (u *Updater) GetLatestRemoteVersion() (year int, month int, err error) {
 	now := time.Now()
 
 	url := fmt.Sprintf(dbipDownloadURL, now.Year(), int(now.Month()))
-	resp, err := http.Head(url)
+	resp, err := u.client.Head(url)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -65,7 +69,7 @@ func (u *Updater) GetLatestRemoteVersion() (year int, month int, err error) {
 
 	prev := now.AddDate(0, -1, 0)
 	url = fmt.Sprintf(dbipDownloadURL, prev.Year(), int(prev.Month()))
-	resp, err = http.Head(url)
+	resp, err = u.client.Head(url)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -109,7 +113,7 @@ func (u *Updater) Update() error {
 	now := time.Now()
 	url := fmt.Sprintf(dbipDownloadURL, now.Year(), int(now.Month()))
 
-	resp, err := http.Get(url)
+	resp, err := u.client.Get(url)
 	if err != nil {
 		return fmt.Errorf("failed to download: %w", err)
 	}
@@ -118,7 +122,7 @@ func (u *Updater) Update() error {
 		resp.Body.Close()
 		prev := now.AddDate(0, -1, 0)
 		url = fmt.Sprintf(dbipDownloadURL, prev.Year(), int(prev.Month()))
-		resp, err = http.Get(url)
+		resp, err = u.client.Get(url)
 		if err != nil {
 			return fmt.Errorf("failed to download: %w", err)
 		}

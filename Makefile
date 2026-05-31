@@ -1,4 +1,4 @@
-.PHONY: build clean test lint verify
+.PHONY: build clean test test-race cover cover-html lint verify
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null | sed 's/^v//' || echo "dev")
 LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
@@ -14,6 +14,16 @@ clean:
 
 test:
 	go test ./...
+
+test-race:
+	go test -race ./...
+
+cover:
+	go test -race -covermode=atomic -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out | tail -1
+
+cover-html: cover
+	go tool cover -html=coverage.out
 
 lint:
 	go vet ./...

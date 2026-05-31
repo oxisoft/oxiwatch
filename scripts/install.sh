@@ -216,6 +216,16 @@ read GEOIP_ENABLED < /dev/tty
 GEOIP_ENABLED=${GEOIP_ENABLED:-Y}
 [[ $GEOIP_ENABLED =~ ^[Yy] ]] && GEOIP_ENABLED="true" || GEOIP_ENABLED="false"
 
+echo ""
+METRICS_ENABLED="false"
+METRICS_LISTEN="127.0.0.1:9184"
+if ask_yes_no "Expose Prometheus metrics?"; then
+  METRICS_ENABLED="true"
+  echo -n "  Metrics listen address [${METRICS_LISTEN}]: "
+  read METRICS_LISTEN_INPUT < /dev/tty
+  METRICS_LISTEN=${METRICS_LISTEN_INPUT:-$METRICS_LISTEN}
+fi
+
 # Generate config
 cat > "$CONFIG_DIR/config.json" << EOF
 {
@@ -228,11 +238,15 @@ $CHANNELS_JSON
   "daily_report_time": "08:00",
   "daily_report_timezone": "UTC",
   "retention_days": 90,
-  "log_level": "info"
+  "log_level": "info",
+  "metrics_enabled": $METRICS_ENABLED,
+  "metrics_listen": "$(json_escape "$METRICS_LISTEN")"
 }
 EOF
 chown oxiwatch:oxiwatch "$CONFIG_DIR/config.json"
-chmod 644 "$CONFIG_DIR/config.json"
+# Secrets live here (bot tokens, Matrix access token, SMTP password) — keep it
+# readable only by the oxiwatch service user (and root), not world-readable.
+chmod 600 "$CONFIG_DIR/config.json"
 
 # Install systemd service
 cat > /etc/systemd/system/oxiwatch.service << 'EOF'
@@ -249,6 +263,31 @@ ExecStart=/usr/local/bin/oxiwatch daemon --foreground
 Restart=always
 RestartSec=5
 
+# --- Hardening ---
+NoNewPrivileges=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/oxiwatch
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+UMask=0077
+
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -261,6 +300,9 @@ echo "=== Installation Complete ==="
 echo "Binary: $INSTALL_DIR/oxiwatch"
 echo "Config: $CONFIG_DIR/config.json"
 echo "Data:   $DATA_DIR/"
+if [ "$METRICS_ENABLED" = "true" ]; then
+  echo "Metrics: http://$METRICS_LISTEN/metrics"
+fi
 echo ""
 echo -n "Start oxiwatch service now? [Y/n]: "
 read START_NOW < /dev/tty

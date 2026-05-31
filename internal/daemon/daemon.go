@@ -12,6 +12,7 @@ import (
 	"github.com/oxisoft/oxiwatch/internal/config"
 	"github.com/oxisoft/oxiwatch/internal/geoip"
 	"github.com/oxisoft/oxiwatch/internal/journal"
+	"github.com/oxisoft/oxiwatch/internal/metrics"
 	"github.com/oxisoft/oxiwatch/internal/notifier"
 	"github.com/oxisoft/oxiwatch/internal/parser"
 	"github.com/oxisoft/oxiwatch/internal/report"
@@ -29,6 +30,7 @@ type Daemon struct {
 	geoip     *geoip.Resolver
 	geoUpdate *geoip.Updater
 	report    *report.Generator
+	metrics   *metrics.Metrics
 	version   string
 }
 
@@ -53,6 +55,11 @@ func New(cfg *config.Config, logger *slog.Logger, version string) (*Daemon, erro
 		geoUpdate: geoip.NewUpdater(cfg.GeoIPDatabasePath, logger),
 		report:    report.NewGenerator(store, cfg.ServerName, version),
 		version:   version,
+	}
+
+	if cfg.MetricsEnabled {
+		d.metrics = metrics.New(cfg.ServerName, logger)
+		d.metrics.SetBuildInfo(version)
 	}
 
 	if cfg.GeoIPEnabled {
@@ -154,6 +161,15 @@ func (d *Daemon) Run() error {
 
 	go d.scheduler.Start(ctx)
 
+	if d.metrics != nil {
+		if err := d.metrics.Start(ctx, d.cfg.MetricsListen); err != nil {
+			d.logger.Warn("failed to start metrics endpoint", "addr", d.cfg.MetricsListen, "error", err)
+		} else {
+			d.metrics.MarkStart(time.Now())
+			d.logger.Info("metrics endpoint listening", "addr", d.cfg.MetricsListen)
+		}
+	}
+
 	d.logger.Info("daemon started", "notification_channels", d.notifier.Names())
 
 	if err := d.notifier.SendStartupMessage(d.version); err != nil {
@@ -192,6 +208,10 @@ func (d *Daemon) processEvent(event *parser.SSHEvent) {
 	var warning string
 	if event.EventType == parser.EventSuccess {
 		warning = d.checkLocationChange(event, country, city)
+	}
+
+	if d.metrics != nil {
+		d.metrics.RecordAttempt(event.EventType == parser.EventSuccess, event.Method, country, event.InvalidUser)
 	}
 
 	if err := d.storage.InsertEvent(event, country, city); err != nil {
