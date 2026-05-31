@@ -1,7 +1,9 @@
 package geoip
 
 import (
+	"fmt"
 	"net"
+	"time"
 
 	"github.com/oschwald/maxminddb-golang"
 )
@@ -47,6 +49,29 @@ func (r *Resolver) Lookup(ipStr string) (*Location, error) {
 		Country: record.Country.Names["en"],
 		City:    record.City.Names["en"],
 	}, nil
+}
+
+// LookupRaw returns the full decoded record for an IP, for troubleshooting.
+func (r *Resolver) LookupRaw(ipStr string) (map[string]any, error) {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return nil, fmt.Errorf("invalid IP address: %q", ipStr)
+	}
+	var raw map[string]any
+	if err := r.db.Lookup(ip, &raw); err != nil {
+		return nil, err
+	}
+	return raw, nil
+}
+
+// DatabaseType is the mmdb database type (e.g. "DBIP-City-Lite").
+func (r *Resolver) DatabaseType() string {
+	return r.db.Metadata.DatabaseType
+}
+
+// BuildTime is when the database was built.
+func (r *Resolver) BuildTime() time.Time {
+	return time.Unix(int64(r.db.Metadata.BuildEpoch), 0)
 }
 
 func (r *Resolver) Close() error {

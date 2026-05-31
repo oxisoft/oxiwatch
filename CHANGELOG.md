@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.4.2 - 2026-05-31
+
+### Fixed
+- GeoIP auto-update could leave a **corrupt/truncated database** (locations stopped resolving): the gzip was extracted directly over the live database file, so a partial or short download destroyed the working copy. Updates now extract to a temporary file, verify it opens as a valid mmdb, and only then atomically replace the live database — a bad download can no longer corrupt it.
+- Detect truncated downloads by comparing the received size against `Content-Length`.
+- GeoIP downloads no longer use a single whole-request timeout (which aborted the ~60 MB download on slow links); connection/response-header timeouts are used instead so slow-but-progressing downloads complete.
+
+### Added
+- `oxiwatch geoip lookup <ip>` — verbose, post-install troubleshooting for location detection: shows the database path/size/build date, whether it opens, the resolved country/city, and the full decoded record.
+
 ## v0.4.0 - 2026-05-31
 
 ### Added

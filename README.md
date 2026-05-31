@@ -265,6 +265,9 @@ oxiwatch geoip update
 # Show GeoIP database status
 oxiwatch geoip status
 
+# Troubleshoot location detection for a specific IP (verbose)
+oxiwatch geoip lookup 8.8.8.8
+
 # Run retention cleanup manually
 oxiwatch cleanup
 
@@ -301,6 +304,17 @@ To check the database status:
 ```bash
 oxiwatch geoip status
 ```
+
+To troubleshoot why a specific IP has no location, run a verbose lookup. It
+prints the database path/size/build date, whether the database opens, and the
+full decoded record:
+
+```bash
+oxiwatch geoip lookup 83.6.42.41
+```
+
+If this reports that the database failed to open (corrupt/truncated), re-download
+it with `sudo oxiwatch geoip update` and restart the service.
 
 ## Telegram bot setup
 

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/oxisoft/oxiwatch/internal/config"
 	"github.com/oxisoft/oxiwatch/internal/daemon"
@@ -70,6 +71,7 @@ Commands:
   journal test [-n 50]         Test journal parsing (diagnostic)
   geoip update                 Download/update GeoIP database
   geoip status                 Show GeoIP database info
+  geoip lookup <ip>            Test location detection for an IP (verbose)
   cleanup                      Manually run retention cleanup
   config validate              Validate configuration
   config show                  Show active configuration
@@ -219,8 +221,13 @@ func truncate(s string, n int) string {
 
 func runGeoIP(configPath string) {
 	if len(os.Args) < 3 {
-		fmt.Fprintln(os.Stderr, "Usage: oxiwatch geoip <update|status>")
+		fmt.Fprintln(os.Stderr, "Usage: oxiwatch geoip <update|status|lookup>")
 		os.Exit(1)
+	}
+
+	if os.Args[2] == "lookup" {
+		runGeoIPLookup(configPath, os.Args[3:])
+		return
 	}
 
 	cfg, err := config.Load(configPath)
@@ -279,6 +286,77 @@ func runGeoIP(configPath string) {
 		fmt.Fprintf(os.Stderr, "Unknown geoip command: %s\n", os.Args[2])
 		os.Exit(1)
 	}
+}
+
+func runGeoIPLookup(configPath string, args []string) {
+	if len(args) < 1 {
+		fmt.Fprintln(os.Stderr, "Usage: oxiwatch geoip lookup <ip>")
+		os.Exit(1)
+	}
+	ip := args[0]
+
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		fatal("failed to load config: %v", err)
+	}
+
+	fmt.Println("=== GeoIP Lookup ===")
+	fmt.Printf("IP address:    %s\n", ip)
+	fmt.Printf("GeoIP enabled: %v\n", cfg.GeoIPEnabled)
+	fmt.Printf("Database path: %s\n", cfg.GeoIPDatabasePath)
+
+	info, err := os.Stat(cfg.GeoIPDatabasePath)
+	if err != nil {
+		fmt.Printf("Database file: NOT FOUND (%v)\n", err)
+		fmt.Println("\nRun 'sudo oxiwatch geoip update' to download the database.")
+		os.Exit(1)
+	}
+	fmt.Printf("Database size: %.2f MB\n", float64(info.Size())/1024/1024)
+	fmt.Printf("Last modified: %s\n", info.ModTime().Format("2006-01-02 15:04:05"))
+
+	resolver, err := geoip.NewResolver(cfg.GeoIPDatabasePath)
+	if err != nil {
+		fmt.Printf("\nFAILED to open database: %v\n", err)
+		fmt.Println("The database is likely corrupt or truncated.")
+		fmt.Println("Run 'sudo oxiwatch geoip update' to re-download it.")
+		os.Exit(1)
+	}
+	defer resolver.Close()
+
+	fmt.Printf("Database type: %s\n", resolver.DatabaseType())
+	fmt.Printf("Database built: %s\n", resolver.BuildTime().Format("2006-01-02"))
+
+	start := time.Now()
+	loc, err := resolver.Lookup(ip)
+	elapsed := time.Since(start)
+	if err != nil {
+		fmt.Printf("\nLookup error: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("\n=== Result (%.3f ms) ===\n", float64(elapsed.Microseconds())/1000)
+	fmt.Printf("Country: %s\n", emptyDash(loc.Country))
+	fmt.Printf("City:    %s\n", emptyDash(loc.City))
+
+	raw, err := resolver.LookupRaw(ip)
+	if err != nil {
+		fmt.Printf("\nRaw lookup error: %v\n", err)
+		os.Exit(1)
+	}
+	if len(raw) == 0 {
+		fmt.Println("\nNo record for this IP in the database.")
+		fmt.Println("The free DB-IP Lite database has coverage gaps; this may be expected for some IPs.")
+		return
+	}
+	pretty, _ := json.MarshalIndent(raw, "", "  ")
+	fmt.Printf("\nRaw record:\n%s\n", pretty)
+}
+
+func emptyDash(s string) string {
+	if s == "" {
+		return "(none)"
+	}
+	return s
 }
 
 func runCleanup(configPath string) {

@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/oschwald/maxminddb-golang"
 )
 
 const (
@@ -25,9 +28,20 @@ func NewUpdater(dbPath string, logger *slog.Logger) *Updater {
 	return &Updater{
 		dbPath: dbPath,
 		logger: logger,
-		// Bounded timeout so a hung db-ip.com connection can't block daemon
-		// startup (initGeoIP runs synchronously) or wedge the monthly updater.
-		client: &http.Client{Timeout: 5 * time.Minute},
+		// The GeoIP database is ~60 MB, so we must NOT cap the whole transfer
+		// (a slow link would abort mid-download and leave no database). Instead
+		// bound connection setup and response latency, so a dead/hung server
+		// can't block daemon startup while a slow-but-progressing download is
+		// allowed to finish. A generous overall ceiling is the final backstop.
+		client: &http.Client{
+			Timeout: 30 * time.Minute,
+			Transport: &http.Transport{
+				DialContext:           (&net.Dialer{Timeout: 15 * time.Second}).DialContext,
+				TLSHandshakeTimeout:   15 * time.Second,
+				ResponseHeaderTimeout: 30 * time.Second,
+				IdleConnTimeout:       60 * time.Second,
+			},
+		},
 	}
 }
 
@@ -146,21 +160,32 @@ func (u *Updater) Update() error {
 	tmpPath := tmpFile.Name()
 	defer os.Remove(tmpPath)
 
-	if _, err := io.Copy(tmpFile, resp.Body); err != nil {
+	written, err := io.Copy(tmpFile, resp.Body)
+	if err != nil {
 		tmpFile.Close()
 		return fmt.Errorf("failed to save download: %w", err)
 	}
 	tmpFile.Close()
 
-	if err := u.extractGzip(tmpPath); err != nil {
-		return fmt.Errorf("failed to extract database: %w", err)
+	// Guard against truncated downloads (a short read that ends in EOF would
+	// otherwise be silently accepted and corrupt the database).
+	if resp.ContentLength > 0 && written != resp.ContentLength {
+		return fmt.Errorf("incomplete download: got %d of %d bytes", written, resp.ContentLength)
+	}
+
+	if err := u.extractAndInstall(tmpPath); err != nil {
+		return fmt.Errorf("failed to install database: %w", err)
 	}
 
 	u.logger.Info("GeoIP database updated successfully", "path", u.dbPath)
 	return nil
 }
 
-func (u *Updater) extractGzip(gzPath string) error {
+// extractAndInstall decompresses the downloaded gzip into a temporary file in
+// the destination directory, verifies it is a readable mmdb, and only then
+// atomically renames it into place. This guarantees a partial or corrupt
+// download can never replace (or destroy) the working database.
+func (u *Updater) extractAndInstall(gzPath string) error {
 	f, err := os.Open(gzPath)
 	if err != nil {
 		return err
@@ -173,12 +198,32 @@ func (u *Updater) extractGzip(gzPath string) error {
 	}
 	defer gzr.Close()
 
-	out, err := os.Create(u.dbPath)
+	dir := filepath.Dir(u.dbPath)
+	out, err := os.CreateTemp(dir, "dbip-*.mmdb.new")
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	tmpPath := out.Name()
+	defer os.Remove(tmpPath) // no-op once renamed
 
-	_, err = io.Copy(out, gzr)
-	return err
+	if _, err := io.Copy(out, gzr); err != nil {
+		out.Close()
+		return fmt.Errorf("decompress failed (truncated download?): %w", err)
+	}
+	if err := out.Close(); err != nil {
+		return err
+	}
+
+	// Validate the extracted file actually opens as a MaxMind DB before we let
+	// it replace the live database.
+	db, err := maxminddb.Open(tmpPath)
+	if err != nil {
+		return fmt.Errorf("extracted database is invalid: %w", err)
+	}
+	db.Close()
+
+	if err := os.Rename(tmpPath, u.dbPath); err != nil {
+		return fmt.Errorf("failed to install database: %w", err)
+	}
+	return nil
 }
