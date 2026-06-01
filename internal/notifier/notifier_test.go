@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestFormatLocation(t *testing.T) {
@@ -186,5 +187,36 @@ func TestManagerDispatchNoChannels(t *testing.T) {
 	m := &Manager{}
 	if err := m.dispatch(message("s", "x")); err != nil {
 		t.Fatalf("dispatch with no channels error = %v, want nil", err)
+	}
+}
+
+func TestFormatTime(t *testing.T) {
+	// A fixed instant: 2026-05-31 08:15:28 UTC.
+	utc := time.Date(2026, 5, 31, 8, 15, 28, 0, time.UTC)
+
+	// UTC zone: no bracket (would just repeat the value).
+	mUTC := &Manager{loc: time.UTC}
+	if got := mUTC.formatTime(utc); got != "2026-05-31 08:15:28 UTC" {
+		t.Errorf("UTC formatTime = %q, want %q", got, "2026-05-31 08:15:28 UTC")
+	}
+
+	// nil location falls back to UTC.
+	mNil := &Manager{}
+	if got := mNil.formatTime(utc); got != "2026-05-31 08:15:28 UTC" {
+		t.Errorf("nil-loc formatTime = %q, want UTC", got)
+	}
+
+	// A non-UTC zone shows local time plus the UTC time in brackets.
+	warsaw, err := time.LoadLocation("Europe/Warsaw")
+	if err != nil {
+		t.Skipf("tz data unavailable: %v", err)
+	}
+	mPL := &Manager{loc: warsaw}
+	got := mPL.formatTime(utc) // Warsaw is UTC+2 in summer -> 10:15:28 CEST
+	if !strings.Contains(got, "(08:15:28 UTC)") {
+		t.Errorf("formatTime = %q, want UTC time in brackets", got)
+	}
+	if !strings.HasPrefix(got, "2026-05-31 10:15:28") {
+		t.Errorf("formatTime = %q, want local time 10:15:28 first", got)
 	}
 }

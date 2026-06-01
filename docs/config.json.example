@@ -16,6 +16,7 @@
   "email_password": "your-smtp-password",
 
   "server_name": "",
+  "timezone": "CET",
   "geoip_enabled": true,
   "geoip_database_path": "/var/lib/oxiwatch/dbip-city-lite.mmdb",
   "database_path": "/var/lib/oxiwatch/oxiwatch.db",

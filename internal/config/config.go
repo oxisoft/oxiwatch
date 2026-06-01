@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -32,6 +33,7 @@ type Config struct {
 	EmailPassword string   `json:"email_password"`
 
 	ServerName          string `json:"server_name"`
+	Timezone            string `json:"timezone"`
 	GeoIPEnabled        bool   `json:"geoip_enabled"`
 	GeoIPDatabasePath   string `json:"geoip_database_path"`
 	DatabasePath        string `json:"database_path"`
@@ -49,6 +51,7 @@ func DefaultConfig() *Config {
 	hostname, _ := os.Hostname()
 	return &Config{
 		ServerName:          hostname,
+		Timezone:            "UTC",
 		GeoIPEnabled:        true,
 		GeoIPDatabasePath:   DefaultGeoIPPath,
 		DatabasePath:        DefaultDatabasePath,
@@ -135,6 +138,9 @@ func applyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("OXIWATCH_SERVER_NAME"); v != "" {
 		cfg.ServerName = v
 	}
+	if v := os.Getenv("OXIWATCH_TIMEZONE"); v != "" {
+		cfg.Timezone = v
+	}
 	if v := os.Getenv("OXIWATCH_GEOIP_ENABLED"); v != "" {
 		cfg.GeoIPEnabled = strings.ToLower(v) == "true" || v == "1"
 	}
@@ -207,6 +213,18 @@ func (c *Config) EmailActive() bool {
 	return c.EmailConfigured() && enabledFlag(c.EmailEnabled)
 }
 
+// Location returns the configured display timezone, falling back to UTC.
+func (c *Config) Location() *time.Location {
+	if c.Timezone == "" {
+		return time.UTC
+	}
+	loc, err := time.LoadLocation(c.Timezone)
+	if err != nil {
+		return time.UTC
+	}
+	return loc
+}
+
 func (c *Config) Validate() error {
 	if c.DatabasePath == "" {
 		return fmt.Errorf("database_path is required")
@@ -241,6 +259,12 @@ func (c *Config) Validate() error {
 
 	if c.MetricsEnabled && c.MetricsListen == "" {
 		return fmt.Errorf("metrics_listen is required when metrics_enabled is true")
+	}
+
+	if c.Timezone != "" {
+		if _, err := time.LoadLocation(c.Timezone); err != nil {
+			return fmt.Errorf("invalid timezone %q: %w", c.Timezone, err)
+		}
 	}
 
 	return nil

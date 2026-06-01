@@ -76,7 +76,7 @@ func New(cfg *config.Config, logger *slog.Logger, version string) (*Daemon, erro
 // both the daemon and the send-test command behave identically. It returns an
 // error if no channel is configured.
 func BuildNotifier(cfg *config.Config, logger *slog.Logger) (*notifier.Manager, error) {
-	mgr := notifier.NewManager(cfg.ServerName, logger)
+	mgr := notifier.NewManager(cfg.ServerName, cfg.Location(), logger)
 
 	if cfg.TelegramActive() {
 		tg, err := notifier.NewTelegram(cfg.TelegramBotToken, cfg.TelegramChatID)

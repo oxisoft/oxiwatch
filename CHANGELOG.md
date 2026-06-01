@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.4.3 - 2026-05-31
+
+### Added
+- `timezone` config option (IANA name, e.g. `Europe/Zurich`). Notification timestamps now show the configured local time, with the UTC time in brackets for reference. Defaults to UTC, and the bracket is omitted when the configured zone is already UTC. Also settable via `OXIWATCH_TIMEZONE`.
+
 ## v0.4.2 - 2026-05-31
 
 ### Fixed

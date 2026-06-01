@@ -167,6 +167,7 @@ Create `/etc/oxiwatch/config.json`:
   "telegram_bot_token": "123456:ABC...",
   "telegram_chat_id": "-100123...",
   "server_name": "",
+  "timezone": "Europe/Zurich",
   "geoip_enabled": true,
   "geoip_database_path": "/var/lib/oxiwatch/dbip-city-lite.mmdb",
   "database_path": "/var/lib/oxiwatch/oxiwatch.db",
@@ -231,6 +232,7 @@ channel is enabled by default.
 | `email_username` | SMTP auth username | - |
 | `email_password` | SMTP auth password | - |
 | `server_name` | Server name for notifications | hostname |
+| `timezone` | IANA timezone for notification timestamps (e.g. `Europe/Zurich`). UTC is shown in brackets alongside it | UTC |
 | `geoip_enabled` | Enable GeoIP lookup | true |
 | `geoip_database_path` | Path to DB-IP database | /var/lib/oxiwatch/dbip-city-lite.mmdb |
 | `database_path` | Path to SQLite database | /var/lib/oxiwatch/oxiwatch.db |

@@ -34,16 +34,44 @@ type Channel interface {
 type Manager struct {
 	channels   []Channel
 	serverInfo string
+	loc        *time.Location
 	logger     *slog.Logger
 }
 
 // NewManager builds the manager and resolves the server info (name + public
-// IPs) once, so every channel reports the same server identity.
-func NewManager(serverName string, logger *slog.Logger) *Manager {
+// IPs) once, so every channel reports the same server identity. loc is the
+// timezone used to display timestamps (UTC if nil).
+func NewManager(serverName string, loc *time.Location, logger *slog.Logger) *Manager {
+	if loc == nil {
+		loc = time.UTC
+	}
 	return &Manager{
 		serverInfo: buildServerInfo(serverName),
+		loc:        loc,
 		logger:     logger,
 	}
+}
+
+// formatTime renders an instant in the configured timezone, with the UTC time
+// in brackets for reference. When the configured zone is already UTC the
+// bracket is omitted to avoid repeating the same value.
+func (m *Manager) formatTime(t time.Time) string {
+	loc := m.loc
+	if loc == nil {
+		loc = time.UTC
+	}
+	local := t.In(loc)
+	s := local.Format("2006-01-02 15:04:05 MST")
+
+	if _, offset := local.Zone(); offset == 0 {
+		return s
+	}
+
+	utc := t.UTC()
+	if local.Format("2006-01-02") == utc.Format("2006-01-02") {
+		return s + " (" + utc.Format("15:04:05") + " UTC)"
+	}
+	return s + " (" + utc.Format("2006-01-02 15:04:05") + " UTC)"
 }
 
 // Add registers a channel. Nil channels are ignored.
@@ -94,7 +122,7 @@ func (m *Manager) SendLoginAlert(event *parser.SSHEvent, country, city, warning 
 📍 Location: %s`,
 		escapeHTML(m.serverInfo),
 		escapeHTML(event.Username),
-		event.Timestamp.Format("2006-01-02 15:04:05"),
+		m.formatTime(event.Timestamp),
 		event.Method,
 		escapeHTML(event.IP),
 		escapeHTML(location),
@@ -118,7 +146,7 @@ func (m *Manager) SendTestMessage() error {
 
 Connection successful!`,
 		escapeHTML(m.serverInfo),
-		time.Now().Format("2006-01-02 15:04:05"),
+		m.formatTime(time.Now()),
 	)
 	return m.dispatch(message("OxiWatch Test Message", body))
 }
@@ -129,7 +157,7 @@ func (m *Manager) SendStartupMessage(version string) error {
 📅 Time: %s
 📦 Version: %s`,
 		escapeHTML(m.serverInfo),
-		time.Now().Format("2006-01-02 15:04:05"),
+		m.formatTime(time.Now()),
 		escapeHTML(version),
 	)
 	return m.dispatch(message("OxiWatch Started", body))
@@ -140,7 +168,7 @@ func (m *Manager) SendShutdownMessage() error {
 🖥️ Server: %s
 📅 Time: %s`,
 		escapeHTML(m.serverInfo),
-		time.Now().Format("2006-01-02 15:04:05"),
+		m.formatTime(time.Now()),
 	)
 	return m.dispatch(message("OxiWatch Stopped", body))
 }
