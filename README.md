@@ -9,7 +9,7 @@
 Know the moment someone logs into your server over SSH, and get a daily report of every brute-force attempt that didn't get in.
 
 [![CI](https://github.com/oxisoft/oxiwatch/actions/workflows/ci.yml/badge.svg)](https://github.com/oxisoft/oxiwatch/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-43.1%25-yellow)](https://github.com/oxisoft/oxiwatch/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-43.2%25-yellow)](https://github.com/oxisoft/oxiwatch/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/oxisoft/oxiwatch?sort=semver&color=2ea44f)](https://github.com/oxisoft/oxiwatch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Go](https://img.shields.io/badge/Go-1.25%2B-00ADD8?logo=go&logoColor=white)](go.mod)
