@@ -70,6 +70,11 @@
     },
     {
       "@type": "Question",
+      "name": "Can I stop alerts for my own logins from home or the office?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Add the address or range to the quiet list, ideally restricted to your username: sudo oxiwatch quiet add 203.0.113.7 --user alex --label Home. Those logins send no alert but still appear in the daily report and login history, and a login by any other user from the same address still alerts." }
+    },
+    {
+      "@type": "Question",
       "name": "Which Linux distributions are supported?",
       "acceptedAnswer": { "@type": "Answer", "text": "Any Debian-based distribution with systemd. OxiWatch is tested on Debian 12 and 13 and works on Ubuntu and derivatives." }
     },
@@ -265,6 +270,11 @@
           <p>A morning summary of brute-force attempts and your top attacker IPs, so nothing slips by.</p>
         </div>
         <div class="feature">
+          <div class="ico">🔕</div>
+          <h3>Quiet list for known IPs</h3>
+          <p>No alert when you log in from home or the office, per address, range or user. Those logins still count in every report.</p>
+        </div>
+        <div class="feature">
           <div class="ico">🌍</div>
           <h3>Built-in GeoIP</h3>
           <p>See where logins and attacks come from. Uses free DB-IP Lite, with no API key or registration.</p>
@@ -347,6 +357,10 @@
       <details>
         <summary>Does OxiWatch replace fail2ban?</summary>
         <p>No. fail2ban <em>blocks</em> repeated failed attempts; OxiWatch <em>tells you</em> who actually logged in and summarizes attacks in a daily report. They solve different problems and run together on the same machine.</p>
+      </details>
+      <details>
+        <summary>Can I stop alerts for my own logins from home or the office?</summary>
+        <p>Yes. Add the address or range to the quiet list, ideally restricted to your username: <code>sudo oxiwatch quiet add 203.0.113.7 --user alex --label "Home"</code>. Those logins send no alert but still appear in the daily report and login history, and a login by any other user from the same address still alerts.</p>
       </details>
       <details>
         <summary>Which Linux distributions are supported?</summary>

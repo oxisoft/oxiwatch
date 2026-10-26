@@ -68,6 +68,7 @@ If you've ever searched for "*how to get a Telegram notification on SSH login*",
 
 - **Real-time SSH login monitoring** via the systemd journal (`journalctl -u ssh`)
 - **Instant alerts via Telegram, Matrix, or email** for every successful SSH login (enable one or several channels)
+- **Quiet list** for known addresses: no alert when you log in from home or the office, but every login still counts in reports
 - **Daily reports of failed login attempts** with top attacker IPs and counts
 - **GeoIP geolocation** of source IPs (optional, DB-IP Lite, no registration or license key)
 - **SQLite storage** with configurable retention
@@ -243,8 +244,52 @@ channel is enabled by default.
 | `log_level` | Log level (debug, info, warn, error) | info |
 | `metrics_enabled` | Expose a Prometheus `/metrics` endpoint | false |
 | `metrics_listen` | Address the metrics endpoint binds to | 127.0.0.1:9184 |
+| `quiet_ips` | Known addresses whose logins send no alert, see [Quiet list](#quiet-list) | - |
 
-All options can be overridden via environment variables with the `OXIWATCH_` prefix (e.g., `OXIWATCH_TELEGRAM_BOT_TOKEN`).
+All options except `quiet_ips` can be overridden via environment variables with the `OXIWATCH_` prefix (e.g., `OXIWATCH_TELEGRAM_BOT_TOKEN`).
+
+### Quiet list
+
+If you log in from the same places every day, an alert for each login is noise. Put those
+addresses on the quiet list: logins from them send no instant alert, but they are still
+stored, counted in the daily report (`Successful logins: 12 (9 quiet)`), listed by
+`oxiwatch stats logins` with their label, and counted in the `oxiwatch_alerts_suppressed_total`
+metric.
+
+```bash
+# Only alex is quiet from this address; root from the same address still alerts
+sudo oxiwatch quiet add 203.0.113.7 --user alex --label "Alex home"
+
+# A whole range, any user, for 30 days (or --expires 2026-12-31)
+sudo oxiwatch quiet add 198.51.100.0/24 --label "Office" --expires 30d
+
+oxiwatch quiet list                          # entries, expiry, last match
+oxiwatch quiet check 203.0.113.7 --user root # would this login alert?
+sudo oxiwatch quiet remove "Office"          # by number, address or label
+sudo oxiwatch quiet prune                    # drop expired entries
+```
+
+The list lives in `config.json`, so you can also edit it by hand or manage it with Ansible:
+
+```json
+"quiet_ips": [
+  {"ip": "203.0.113.7", "user": "alex", "label": "Alex home"},
+  {"ip": "198.51.100.0/24", "label": "Office", "expires": "2026-12-31"}
+]
+```
+
+- `ip`: a single IPv4/IPv6 address or a CIDR range. Required.
+- `user`: only this username is quiet. Without it, **any** user from the address is quiet,
+  root included, so set it whenever you can.
+- `label`: name shown in reports and logs. Defaults to the address. Labels must be unique.
+- `expires`: last day the entry applies (in the configured `timezone`). Expired entries stay
+  in the file but no longer match until `oxiwatch quiet prune` removes them.
+
+The `quiet` commands change only the `quiet_ips` key and keep the rest of the file, its
+permissions and owner as they were. The running daemon reloads the list within 5 seconds of
+any change to the file (or at once on `systemctl reload oxiwatch`), with no restart. If the
+edited list is invalid, the daemon logs an error and keeps using the previous list. Other
+settings still need `systemctl restart oxiwatch`.
 
 ## Usage
 
@@ -269,6 +314,10 @@ oxiwatch geoip status
 
 # Troubleshoot location detection for a specific IP (verbose)
 oxiwatch geoip lookup 8.8.8.8
+
+# Manage the quiet list (logins that send no alert)
+oxiwatch quiet list
+sudo oxiwatch quiet add 203.0.113.7 --user alex --label "Alex home"
 
 # Run retention cleanup manually
 oxiwatch cleanup
@@ -378,6 +427,7 @@ and tell them apart.
 | `oxiwatch_ssh_attempts_by_country_total` | counter | `server`, `country` | Attempts by source country (GeoIP) |
 | `oxiwatch_build_info` | gauge | `server`, `version` | Running version (value is always 1) |
 | `oxiwatch_start_time_seconds` | gauge | `server` | Daemon start time (Unix seconds) |
+| `oxiwatch_alerts_suppressed_total` | counter | `server` | Successful logins whose alert the [quiet list](#quiet-list) suppressed |
 
 > **Security:** the endpoint is unauthenticated. Keep it bound to `127.0.0.1` (or a private
 > interface) and scrape it over a trusted network or behind a reverse proxy. Don't expose it
@@ -434,6 +484,10 @@ No. OxiWatch uses the free DB-IP Lite database and downloads/updates it automati
 ### Does it monitor failed SSH login attempts too?
 
 Yes. Failed attempts (including invalid users and pre-auth disconnects) are recorded and summarized in a daily Telegram report with the top attacker IPs.
+
+### Can I stop alerts for my own logins from home or the office?
+
+Yes. Add the address or range to the [quiet list](#quiet-list), ideally restricted to your username: `sudo oxiwatch quiet add 203.0.113.7 --user alex --label "Home"`. Those logins send no alert but still appear in the daily report and login history, and a login by any other user from the same address still alerts.
 
 ### Can I monitor multiple servers in one Telegram chat?
 

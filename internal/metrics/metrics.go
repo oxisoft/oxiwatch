@@ -25,7 +25,8 @@ type Metrics struct {
 	loginAttempts   *prometheus.CounterVec // labels: result, method
 	invalidUser     prometheus.Counter
 	countryAttempts *prometheus.CounterVec // labels: country
-	buildInfo       *prometheus.GaugeVec   // labels: version
+	suppressed      prometheus.Counter
+	buildInfo       *prometheus.GaugeVec // labels: version
 	startTime       prometheus.Gauge
 }
 
@@ -58,6 +59,11 @@ func New(serverName string, logger *slog.Logger) *Metrics {
 			Help:        "Total SSH attempts by source country (GeoIP); \"unknown\" when not resolved.",
 			ConstLabels: cl,
 		}, []string{"country"}),
+		suppressed: promauto.NewCounter(prometheus.CounterOpts{
+			Name:        "oxiwatch_alerts_suppressed_total",
+			Help:        "Successful SSH logins whose instant alert was suppressed by the quiet list.",
+			ConstLabels: cl,
+		}),
 		buildInfo: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name:        "oxiwatch_build_info",
 			Help:        "Build information; the value is always 1.",
@@ -100,6 +106,11 @@ func (m *Metrics) RecordAttempt(success bool, method, country string, invalidUse
 	if invalidUser {
 		m.invalidUser.Inc()
 	}
+}
+
+// RecordSuppressed records a login alert suppressed by the quiet list.
+func (m *Metrics) RecordSuppressed() {
+	m.suppressed.Inc()
 }
 
 // Start binds the exporter to addr and serves /metrics. The listen socket is

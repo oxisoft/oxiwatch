@@ -266,3 +266,12 @@ func TestStartSucceedsAndShutsDown(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 }
+
+func TestRecordSuppressed(t *testing.T) {
+	m := newTestMetrics(t)
+	m.RecordSuppressed()
+	m.RecordSuppressed()
+	if got := readValue(t, m.suppressed); got != 2 {
+		t.Errorf("suppressed = %v, want 2", got)
+	}
+}

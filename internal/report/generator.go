@@ -49,7 +49,12 @@ func (g *Generator) GenerateDailyReport(date time.Time) (string, error) {
 		return "", err
 	}
 
-	reportText := g.formatReport(date, stats, topUsers, topIPs, successCount)
+	quietCount, err := g.storage.GetQuietSuccessCount(startOfDay)
+	if err != nil {
+		return "", err
+	}
+
+	reportText := g.formatReport(date, stats, topUsers, topIPs, successCount, quietCount)
 
 	if g.currentVersion != "" {
 		reportText += g.checkVersionUpdate()
@@ -58,7 +63,7 @@ func (g *Generator) GenerateDailyReport(date time.Time) (string, error) {
 	return reportText, nil
 }
 
-func (g *Generator) formatReport(date time.Time, stats *storage.Stats, topUsers []storage.UsernameCount, topIPs []storage.IPCount, successCount int) string {
+func (g *Generator) formatReport(date time.Time, stats *storage.Stats, topUsers []storage.UsernameCount, topIPs []storage.IPCount, successCount, quietCount int) string {
 	var buf bytes.Buffer
 
 	buf.WriteString("📊 <b>Daily SSH Report</b>\n")
@@ -66,7 +71,7 @@ func (g *Generator) formatReport(date time.Time, stats *storage.Stats, topUsers 
 	buf.WriteString(fmt.Sprintf("📅 %s\n\n", date.Format("2006-01-02")))
 
 	buf.WriteString("📈 <b>Summary</b>\n")
-	buf.WriteString(fmt.Sprintf("• Successful logins: %s\n", formatNumber(successCount)))
+	buf.WriteString(fmt.Sprintf("• Successful logins: %s%s\n", formatNumber(successCount), quietSuffix(quietCount)))
 	buf.WriteString(fmt.Sprintf("• Failed attempts: %s\n", formatNumber(stats.TotalAttempts)))
 	buf.WriteString(fmt.Sprintf("• Unique IPs: %s\n", formatNumber(stats.UniqueIPs)))
 	buf.WriteString(fmt.Sprintf("• Unique usernames: %s\n\n", formatNumber(stats.UniqueUsernames)))
@@ -105,7 +110,7 @@ func (g *Generator) GenerateStats(days int) (string, error) {
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("SSH Statistics (last %d days)\n", days))
 	buf.WriteString(fmt.Sprintf("Server: %s\n\n", g.serverName))
-	buf.WriteString(fmt.Sprintf("Successful logins: %d\n", stats.SuccessCount))
+	buf.WriteString(fmt.Sprintf("Successful logins: %d%s\n", stats.SuccessCount, quietSuffix(stats.QuietCount)))
 	buf.WriteString(fmt.Sprintf("Failed attempts: %d\n", stats.FailedCount))
 	buf.WriteString(fmt.Sprintf("Unique IPs: %d\n", stats.UniqueIPs))
 	buf.WriteString(fmt.Sprintf("Unique usernames: %d\n", stats.UniqueUsernames))
@@ -130,26 +135,30 @@ func (g *Generator) GenerateLoginsReport(days int) (string, error) {
 	}
 
 	for _, login := range logins {
-		location := formatLocation(login.Country, login.City)
-		if location != "" {
-			buf.WriteString(fmt.Sprintf("%s  %-15s  %-12s  %s (%s)\n",
-				login.Timestamp.Format("2006-01-02 15:04:05"),
-				login.Username,
-				login.Method,
-				login.IP,
-				location,
-			))
-		} else {
-			buf.WriteString(fmt.Sprintf("%s  %-15s  %-12s  %s\n",
-				login.Timestamp.Format("2006-01-02 15:04:05"),
-				login.Username,
-				login.Method,
-				login.IP,
-			))
+		line := fmt.Sprintf("%s  %-15s  %-12s  %s",
+			login.Timestamp.Format("2006-01-02 15:04:05"),
+			login.Username,
+			login.Method,
+			login.IP,
+		)
+		if location := formatLocation(login.Country, login.City); location != "" {
+			line += " (" + location + ")"
 		}
+		if login.QuietLabel != "" {
+			line += "  [quiet: " + login.QuietLabel + "]"
+		}
+		buf.WriteString(line + "\n")
 	}
 
 	return buf.String(), nil
+}
+
+// quietSuffix is " (N quiet)" when some logins were on the quiet list.
+func quietSuffix(n int) string {
+	if n == 0 {
+		return ""
+	}
+	return fmt.Sprintf(" (%s quiet)", formatNumber(n))
 }
 
 func formatLocation(country, city string) string {

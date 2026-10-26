@@ -260,6 +260,7 @@ User=oxiwatch
 Group=oxiwatch
 SupplementaryGroups=systemd-journal
 ExecStart=/usr/local/bin/oxiwatch daemon --foreground
+ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=5
 

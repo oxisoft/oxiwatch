@@ -45,6 +45,8 @@ func main() {
 		runCleanup(configPath)
 	case "config":
 		runConfig(configPath)
+	case "quiet":
+		runQuiet(configPath)
 	case "send-test":
 		runSendTest(configPath)
 	case "upgrade":
@@ -72,6 +74,12 @@ Commands:
   geoip update                 Download/update GeoIP database
   geoip status                 Show GeoIP database info
   geoip lookup <ip>            Test location detection for an IP (verbose)
+  quiet list                   Show the quiet list (logins that send no alert)
+  quiet add <ip|cidr> [--user U] [--label L] [--expires 30d|2026-12-31]
+                               Add an address or range to the quiet list
+  quiet remove <n|ip|label>    Remove quiet list entries
+  quiet prune                  Remove expired quiet list entries
+  quiet check <ip> [--user U]  Show whether a login would be quiet
   cleanup                      Manually run retention cleanup
   config validate              Validate configuration
   config show                  Show active configuration
@@ -105,6 +113,8 @@ func runDaemon(configPath string) {
 	if err != nil {
 		fatal("failed to initialize daemon: %v", err)
 	}
+
+	d.WatchConfig(configPath)
 
 	if err := d.Run(); err != nil {
 		fatal("daemon error: %v", err)

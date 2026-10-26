@@ -25,6 +25,9 @@ type SSHEventRecord struct {
 	City        string
 	InvalidUser bool
 	CreatedAt   time.Time
+	// QuietLabel is the quiet list entry that matched this login (no alert
+	// was sent); empty for normal events.
+	QuietLabel string
 }
 
 type Stats struct {
@@ -85,14 +88,45 @@ func (s *Storage) migrate() error {
 	CREATE INDEX IF NOT EXISTS idx_username ON ssh_events(username);
 	`
 
-	_, err := s.db.Exec(schema)
+	if _, err := s.db.Exec(schema); err != nil {
+		return err
+	}
+	return s.addColumnIfMissing("ssh_events", "quiet_label", "TEXT")
+}
+
+func (s *Storage) addColumnIfMissing(table, column, decl string) error {
+	rows, err := s.db.Query(`SELECT name FROM pragma_table_info(?)`, table)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return err
+		}
+		if name == column {
+			return nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	rows.Close()
+	_, err = s.db.Exec(fmt.Sprintf(`ALTER TABLE %s ADD COLUMN %s %s`, table, column, decl))
 	return err
 }
 
 func (s *Storage) InsertEvent(event *parser.SSHEvent, country, city string) error {
+	return s.InsertEventQuiet(event, country, city, "")
+}
+
+// InsertEventQuiet stores an event together with the label of the quiet list
+// entry that suppressed its alert (empty when none did).
+func (s *Storage) InsertEventQuiet(event *parser.SSHEvent, country, city, quietLabel string) error {
 	query := `
-		INSERT INTO ssh_events (timestamp, event_type, username, ip, port, method, country, city, invalid_user)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO ssh_events (timestamp, event_type, username, ip, port, method, country, city, invalid_user, quiet_label)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	_, err := s.db.Exec(query,
@@ -105,6 +139,7 @@ func (s *Storage) InsertEvent(event *parser.SSHEvent, country, city string) erro
 		nullString(country),
 		nullString(city),
 		event.InvalidUser,
+		nullString(quietLabel),
 	)
 	return err
 }
@@ -116,7 +151,8 @@ func (s *Storage) GetSuccessfulLogins(since time.Time) ([]SSHEventRecord, error)
 func (s *Storage) GetLastLoginForUser(username string) (*SSHEventRecord, error) {
 	query := `
 		SELECT id, timestamp, event_type, username, ip, port, method,
-		       COALESCE(country, ''), COALESCE(city, ''), invalid_user, created_at
+		       COALESCE(country, ''), COALESCE(city, ''), invalid_user, created_at,
+		       COALESCE(quiet_label, '')
 		FROM ssh_events
 		WHERE event_type = 'success' AND username = ?
 		ORDER BY timestamp DESC
@@ -126,7 +162,7 @@ func (s *Storage) GetLastLoginForUser(username string) (*SSHEventRecord, error) 
 	var e SSHEventRecord
 	err := s.db.QueryRow(query, username).Scan(
 		&e.ID, &e.Timestamp, &e.EventType, &e.Username, &e.IP,
-		&e.Port, &e.Method, &e.Country, &e.City, &e.InvalidUser, &e.CreatedAt,
+		&e.Port, &e.Method, &e.Country, &e.City, &e.InvalidUser, &e.CreatedAt, &e.QuietLabel,
 	)
 	if err != nil {
 		return nil, err
@@ -141,7 +177,8 @@ func (s *Storage) GetFailedAttempts(since time.Time) ([]SSHEventRecord, error) {
 func (s *Storage) getEvents(eventType string, since time.Time) ([]SSHEventRecord, error) {
 	query := `
 		SELECT id, timestamp, event_type, username, ip, port, method,
-		       COALESCE(country, ''), COALESCE(city, ''), invalid_user, created_at
+		       COALESCE(country, ''), COALESCE(city, ''), invalid_user, created_at,
+		       COALESCE(quiet_label, '')
 		FROM ssh_events
 		WHERE event_type = ? AND timestamp >= ?
 		ORDER BY timestamp DESC
@@ -157,7 +194,7 @@ func (s *Storage) getEvents(eventType string, since time.Time) ([]SSHEventRecord
 	for rows.Next() {
 		var e SSHEventRecord
 		if err := rows.Scan(&e.ID, &e.Timestamp, &e.EventType, &e.Username, &e.IP,
-			&e.Port, &e.Method, &e.Country, &e.City, &e.InvalidUser, &e.CreatedAt); err != nil {
+			&e.Port, &e.Method, &e.Country, &e.City, &e.InvalidUser, &e.CreatedAt, &e.QuietLabel); err != nil {
 			return nil, err
 		}
 		events = append(events, e)
@@ -246,7 +283,44 @@ func (s *Storage) GetSuccessCount(since time.Time) (int, error) {
 	return count, err
 }
 
+// GetQuietSuccessCount counts successful logins since since whose alert was
+// suppressed by the quiet list.
+func (s *Storage) GetQuietSuccessCount(since time.Time) (int, error) {
+	var count int
+	err := s.db.QueryRow(`
+		SELECT COUNT(*) FROM ssh_events
+		WHERE event_type = 'success' AND quiet_label IS NOT NULL AND timestamp >= ?
+	`, since).Scan(&count)
+	return count, err
+}
+
+// GetQuietLastMatches returns, per quiet list label, the time of the most
+// recent login it matched (within the retention window).
+func (s *Storage) GetQuietLastMatches() (map[string]time.Time, error) {
+	rows, err := s.db.Query(`
+		SELECT quiet_label, timestamp FROM ssh_events
+		WHERE event_type = 'success' AND quiet_label IS NOT NULL
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make(map[string]time.Time)
+	for rows.Next() {
+		var label string
+		var ts time.Time
+		if err := rows.Scan(&label, &ts); err != nil {
+			return nil, err
+		}
+		if ts.After(out[label]) {
+			out[label] = ts
+		}
+	}
+	return out, rows.Err()
+}
+
 type OverallStats struct {
+	QuietCount      int
 	SuccessCount    int
 	FailedCount     int
 	UniqueIPs       int
@@ -257,6 +331,7 @@ func (s *Storage) GetOverallStats(since time.Time) (*OverallStats, error) {
 	query := `
 		SELECT
 			COUNT(CASE WHEN event_type = 'success' THEN 1 END) as success,
+			COUNT(CASE WHEN event_type = 'success' AND quiet_label IS NOT NULL THEN 1 END) as quiet,
 			COUNT(CASE WHEN event_type = 'failure' THEN 1 END) as failed,
 			COUNT(DISTINCT ip) as unique_ips,
 			COUNT(DISTINCT username) as unique_usernames
@@ -265,7 +340,7 @@ func (s *Storage) GetOverallStats(since time.Time) (*OverallStats, error) {
 	`
 
 	var stats OverallStats
-	err := s.db.QueryRow(query, since).Scan(&stats.SuccessCount, &stats.FailedCount, &stats.UniqueIPs, &stats.UniqueUsernames)
+	err := s.db.QueryRow(query, since).Scan(&stats.SuccessCount, &stats.QuietCount, &stats.FailedCount, &stats.UniqueIPs, &stats.UniqueUsernames)
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/oxisoft/oxiwatch/internal/metrics"
 	"github.com/oxisoft/oxiwatch/internal/notifier"
 	"github.com/oxisoft/oxiwatch/internal/parser"
+	"github.com/oxisoft/oxiwatch/internal/quiet"
 	"github.com/oxisoft/oxiwatch/internal/report"
 	"github.com/oxisoft/oxiwatch/internal/scheduler"
 	"github.com/oxisoft/oxiwatch/internal/storage"
@@ -32,6 +35,21 @@ type Daemon struct {
 	report    *report.Generator
 	metrics   *metrics.Metrics
 	version   string
+
+	// quiet is swapped atomically on reload; processEvent reads it.
+	quiet      atomic.Pointer[quiet.List]
+	configPath string
+	reloadMu   sync.Mutex
+	cfgStamp   fileStamp
+}
+
+// QuietPollInterval is how often the daemon checks config.json for changes
+// to the quiet list.
+var QuietPollInterval = 5 * time.Second
+
+type fileStamp struct {
+	mod  time.Time
+	size int64
 }
 
 func New(cfg *config.Config, logger *slog.Logger, version string) (*Daemon, error) {
@@ -56,6 +74,12 @@ func New(cfg *config.Config, logger *slog.Logger, version string) (*Daemon, erro
 		report:    report.NewGenerator(store, cfg.ServerName, version),
 		version:   version,
 	}
+
+	ql, err := quiet.Compile(cfg.QuietIPs, cfg.Location())
+	if err != nil {
+		return nil, err
+	}
+	d.quiet.Store(ql)
 
 	if cfg.MetricsEnabled {
 		d.metrics = metrics.New(cfg.ServerName, logger)
@@ -109,6 +133,64 @@ func BuildNotifier(cfg *config.Config, logger *slog.Logger) (*notifier.Manager, 
 	return mgr, nil
 }
 
+// WatchConfig makes the daemon reload the quiet list from path when the file
+// changes or on SIGHUP. Other settings still need a restart.
+func (d *Daemon) WatchConfig(path string) {
+	d.configPath = path
+	d.cfgStamp = statFile(path)
+}
+
+func statFile(path string) fileStamp {
+	info, err := os.Stat(path)
+	if err != nil {
+		return fileStamp{}
+	}
+	return fileStamp{mod: info.ModTime(), size: info.Size()}
+}
+
+// reloadQuiet re-reads the quiet list. A broken file keeps the current list
+// in force: a typo must never silently turn alerts back on or off.
+func (d *Daemon) reloadQuiet(reason string) {
+	d.reloadMu.Lock()
+	defer d.reloadMu.Unlock()
+	if d.configPath == "" {
+		return
+	}
+	d.cfgStamp = statFile(d.configPath)
+	cfg, err := config.Load(d.configPath)
+	if err != nil {
+		d.logger.Error("quiet list reload failed, keeping the current list", "reason", reason, "error", err)
+		return
+	}
+	ql, err := quiet.Compile(cfg.QuietIPs, cfg.Location())
+	if err != nil {
+		d.logger.Error("quiet list reload failed, keeping the current list", "reason", reason, "error", err)
+		return
+	}
+	d.quiet.Store(ql)
+	d.logger.Info("quiet list reloaded", "reason", reason, "entries", ql.Len(), "active", ql.Active(time.Now()))
+}
+
+// watchConfig polls the config file and reloads the quiet list when its
+// modification time or size changes (hand edits, `oxiwatch quiet`).
+func (d *Daemon) watchConfig(ctx context.Context) {
+	t := time.NewTicker(QuietPollInterval)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			d.reloadMu.Lock()
+			changed := statFile(d.configPath) != d.cfgStamp
+			d.reloadMu.Unlock()
+			if changed {
+				d.reloadQuiet("config file changed")
+			}
+		}
+	}
+}
+
 func (d *Daemon) initGeoIP() error {
 	if !d.geoUpdate.DatabaseExists() {
 		d.logger.Info("GeoIP database not found, downloading...")
@@ -135,7 +217,14 @@ func (d *Daemon) Run() error {
 	defer cancel()
 
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+
+	if d.configPath != "" {
+		go d.watchConfig(ctx)
+	}
+	if ql := d.quiet.Load(); ql.Len() > 0 {
+		d.logger.Info("quiet list loaded", "entries", ql.Len(), "active", ql.Active(time.Now()))
+	}
 
 	if err := d.journal.Start(ctx); err != nil {
 		return err
@@ -179,6 +268,10 @@ func (d *Daemon) Run() error {
 	for {
 		select {
 		case sig := <-sigCh:
+			if sig == syscall.SIGHUP {
+				d.reloadQuiet("SIGHUP")
+				continue
+			}
 			d.logger.Info("received signal, shutting down", "signal", sig)
 			cancel()
 			return d.shutdown()
@@ -214,7 +307,14 @@ func (d *Daemon) processEvent(event *parser.SSHEvent) {
 		d.metrics.RecordAttempt(event.EventType == parser.EventSuccess, event.Method, country, event.InvalidUser)
 	}
 
-	if err := d.storage.InsertEvent(event, country, city); err != nil {
+	var quietLabel string
+	if event.EventType == parser.EventSuccess {
+		if e, ok := d.quiet.Load().Match(event.IP, event.Username, time.Now()); ok {
+			quietLabel = e.DisplayLabel()
+		}
+	}
+
+	if err := d.storage.InsertEventQuiet(event, country, city, quietLabel); err != nil {
 		d.logger.Error("failed to store event", "error", err)
 		return
 	}
@@ -227,6 +327,14 @@ func (d *Daemon) processEvent(event *parser.SSHEvent) {
 			"country", country,
 			"city", city,
 		)
+
+		if quietLabel != "" {
+			d.logger.Info("login alert suppressed by quiet list", "label", quietLabel, "user", event.Username, "ip", event.IP)
+			if d.metrics != nil {
+				d.metrics.RecordSuppressed()
+			}
+			return
+		}
 
 		if err := d.notifier.SendLoginAlert(event, country, city, warning); err != nil {
 			d.logger.Error("failed to send login alert", "error", err)

@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/oxisoft/oxiwatch/internal/quiet"
 )
 
 const (
@@ -45,6 +47,11 @@ type Config struct {
 
 	MetricsEnabled bool   `json:"metrics_enabled"`
 	MetricsListen  string `json:"metrics_listen"`
+
+	// QuietIPs lists known addresses whose successful logins are recorded
+	// and reported but send no instant alert. Managed by `oxiwatch quiet`
+	// or by hand; the daemon reloads it without a restart.
+	QuietIPs []quiet.Entry `json:"quiet_ips,omitempty"`
 }
 
 func DefaultConfig() *Config {
@@ -265,6 +272,10 @@ func (c *Config) Validate() error {
 		if _, err := time.LoadLocation(c.Timezone); err != nil {
 			return fmt.Errorf("invalid timezone %q: %w", c.Timezone, err)
 		}
+	}
+
+	if _, err := quiet.Compile(c.QuietIPs, c.Location()); err != nil {
+		return err
 	}
 
 	return nil
