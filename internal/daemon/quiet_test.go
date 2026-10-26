@@ -47,6 +47,9 @@ func newQuietDaemon(t *testing.T, entries []quiet.Entry) (*Daemon, *recordingCha
 	return d, rec
 }
 
+// farFuture is an open upper bound for range queries in tests.
+var farFuture = time.Now().AddDate(100, 0, 0)
+
 func login(user, ip string) *parser.SSHEvent {
 	return &parser.SSHEvent{Timestamp: time.Now(), EventType: parser.EventSuccess, Username: user, IP: ip, Port: 22, Method: "publickey"}
 }
@@ -84,7 +87,7 @@ func TestProcessEventQuietSuppressesAlertButStores(t *testing.T) {
 	if len(failed) != 1 || failed[0].QuietLabel != "" {
 		t.Fatalf("failed attempts = %+v", failed)
 	}
-	if n, _ := d.storage.GetQuietSuccessCount(time.Now().Add(-time.Hour)); n != 1 {
+	if n, _ := d.storage.GetQuietSuccessCount(time.Now().Add(-time.Hour), farFuture); n != 1 {
 		t.Fatalf("quiet count = %d, want 1", n)
 	}
 }

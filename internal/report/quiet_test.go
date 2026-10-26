@@ -70,3 +70,30 @@ func TestQuietSuffix(t *testing.T) {
 		t.Errorf("quietSuffix wrong: %q %q", quietSuffix(0), quietSuffix(1234))
 	}
 }
+
+// The daily report covers exactly one day: events from the next morning
+// (before the report is sent) must not leak into "yesterday".
+func TestDailyReportIsBoundedToOneDay(t *testing.T) {
+	day := time.Date(2026, 5, 30, 0, 0, 0, 0, time.UTC)
+	store := newTestStore(t, []seedEvent{
+		{ts: day.Add(-time.Minute), eventType: parser.EventFailure, username: "before", ip: "4.4.4.4", port: 22, method: "password"},
+		{ts: day.Add(10 * time.Hour), eventType: parser.EventFailure, username: "root", ip: "1.1.1.1", port: 22, method: "password"},
+		{ts: day.Add(11 * time.Hour), eventType: parser.EventSuccess, username: "alice", ip: "9.9.9.9", port: 22, method: "publickey"},
+		{ts: day.Add(24 * time.Hour), eventType: parser.EventFailure, username: "nextday", ip: "5.5.5.5", port: 22, method: "password"},
+		{ts: day.Add(31 * time.Hour), eventType: parser.EventSuccess, username: "bob", ip: "8.8.8.8", port: 22, method: "publickey"},
+	})
+	out, err := NewGenerator(store, "srv", "").GenerateDailyReport(day)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Successful logins: 1\n", "Failed attempts: 1\n", "root"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("report missing %q:\n%s", want, out)
+		}
+	}
+	for _, leak := range []string{"nextday", "5.5.5.5", "before", "4.4.4.4"} {
+		if strings.Contains(out, leak) {
+			t.Errorf("report includes %q from outside the day:\n%s", leak, out)
+		}
+	}
+}

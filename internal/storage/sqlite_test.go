@@ -48,12 +48,12 @@ func TestInsertEvent_Success(t *testing.T) {
 		t.Fatalf("InsertEvent() error = %v", err)
 	}
 
-	count, err := s.GetSuccessCount(now.Add(-time.Hour))
+	count, err := s.GetSuccessCount(now.Add(-time.Hour), farFuture)
 	if err != nil {
-		t.Fatalf("GetSuccessCount() error = %v", err)
+		t.Fatalf("GetSuccessCount(, farFuture) error = %v", err)
 	}
 	if count != 1 {
-		t.Fatalf("GetSuccessCount() = %d, want 1", count)
+		t.Fatalf("GetSuccessCount(, farFuture) = %d, want 1", count)
 	}
 }
 
@@ -192,9 +192,9 @@ func TestGetTopUsernames_OrderingAndLimit(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	top, err := s.GetTopUsernames(now.Add(-time.Hour), 2)
+	top, err := s.GetTopUsernames(now.Add(-time.Hour), farFuture, 2)
 	if err != nil {
-		t.Fatalf("GetTopUsernames() error = %v", err)
+		t.Fatalf("GetTopUsernames(, farFuture) error = %v", err)
 	}
 	if len(top) != 2 {
 		t.Fatalf("limit not respected: len = %d, want 2", len(top))
@@ -222,9 +222,9 @@ func TestGetTopIPs_OrderingAndLimit(t *testing.T) {
 	insertN("10.0.0.2", "", "", 2)
 	insertN("10.0.0.3", "DE", "Berlin", 1)
 
-	top, err := s.GetTopIPs(now.Add(-time.Hour), 2)
+	top, err := s.GetTopIPs(now.Add(-time.Hour), farFuture, 2)
 	if err != nil {
-		t.Fatalf("GetTopIPs() error = %v", err)
+		t.Fatalf("GetTopIPs(, farFuture) error = %v", err)
 	}
 	if len(top) != 2 {
 		t.Fatalf("limit not respected: len = %d, want 2", len(top))
@@ -267,9 +267,9 @@ func TestGetFailedStats(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	stats, err := s.GetFailedStats(now.Add(-time.Hour))
+	stats, err := s.GetFailedStats(now.Add(-time.Hour), farFuture)
 	if err != nil {
-		t.Fatalf("GetFailedStats() error = %v", err)
+		t.Fatalf("GetFailedStats(, farFuture) error = %v", err)
 	}
 	if stats.TotalAttempts != 4 {
 		t.Errorf("TotalAttempts = %d, want 4", stats.TotalAttempts)
@@ -296,20 +296,20 @@ func TestGetSuccessCount(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	all, err := s.GetSuccessCount(now.Add(-3 * time.Hour))
+	all, err := s.GetSuccessCount(now.Add(-3*time.Hour), farFuture)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if all != 2 {
-		t.Errorf("GetSuccessCount(all) = %d, want 2", all)
+		t.Errorf("GetSuccessCount(all, farFuture) = %d, want 2", all)
 	}
 
-	recent, err := s.GetSuccessCount(now.Add(-time.Hour))
+	recent, err := s.GetSuccessCount(now.Add(-time.Hour), farFuture)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if recent != 1 {
-		t.Errorf("GetSuccessCount(recent) = %d, want 1", recent)
+		t.Errorf("GetSuccessCount(recent, farFuture) = %d, want 1", recent)
 	}
 }
 
@@ -455,17 +455,17 @@ func TestQueries_ClosedDB_ErrorPaths(t *testing.T) {
 	if _, err := s.GetFailedAttempts(since); err == nil {
 		t.Error("GetFailedAttempts() on closed DB: expected error")
 	}
-	if _, err := s.GetTopUsernames(since, 5); err == nil {
-		t.Error("GetTopUsernames() on closed DB: expected error")
+	if _, err := s.GetTopUsernames(since, farFuture, 5); err == nil {
+		t.Error("GetTopUsernames(, farFuture) on closed DB: expected error")
 	}
-	if _, err := s.GetTopIPs(since, 5); err == nil {
-		t.Error("GetTopIPs() on closed DB: expected error")
+	if _, err := s.GetTopIPs(since, farFuture, 5); err == nil {
+		t.Error("GetTopIPs(, farFuture) on closed DB: expected error")
 	}
-	if _, err := s.GetFailedStats(since); err == nil {
-		t.Error("GetFailedStats() on closed DB: expected error")
+	if _, err := s.GetFailedStats(since, farFuture); err == nil {
+		t.Error("GetFailedStats(, farFuture) on closed DB: expected error")
 	}
-	if _, err := s.GetSuccessCount(since); err == nil {
-		t.Error("GetSuccessCount() on closed DB: expected error")
+	if _, err := s.GetSuccessCount(since, farFuture); err == nil {
+		t.Error("GetSuccessCount(, farFuture) on closed DB: expected error")
 	}
 	if _, err := s.GetOverallStats(since); err == nil {
 		t.Error("GetOverallStats() on closed DB: expected error")

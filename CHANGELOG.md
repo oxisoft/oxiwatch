@@ -8,6 +8,9 @@
 - The daemon reloads the quiet list without a restart: it watches `config.json` (5 s poll) and reloads on SIGHUP. The systemd unit gains `ExecReload`, so `systemctl reload oxiwatch` works. An invalid edit is logged and the previous list stays in force.
 - Login history gains a `quiet_label` column; existing databases are migrated in place on start.
 
+### Fixed
+- The daily report counted from the start of the reported day with no end, so "yesterday" also included today's events up to the moment the report was sent. Every daily-report query is now bounded to that one day.
+
 ### Changed
 - Go 1.26 is now the minimum for building from source.
 - All dependencies upgraded to their latest releases: `maxminddb-golang` v1 to v2.8.0 (`net/netip` based lookups), `modernc.org/sqlite` 1.61.0, `prometheus/client_golang` 1.25.0, `golang.org/x/sys` 0.49.0, `google.golang.org/protobuf` 1.36.12.

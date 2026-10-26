@@ -202,35 +202,35 @@ func (s *Storage) getEvents(eventType string, since time.Time) ([]SSHEventRecord
 	return events, rows.Err()
 }
 
-func (s *Storage) GetFailedStats(since time.Time) (*Stats, error) {
+func (s *Storage) GetFailedStats(since, until time.Time) (*Stats, error) {
 	query := `
 		SELECT
 			COUNT(*) as total,
 			COUNT(DISTINCT ip) as unique_ips,
 			COUNT(DISTINCT username) as unique_usernames
 		FROM ssh_events
-		WHERE event_type = 'failure' AND timestamp >= ?
+		WHERE event_type = 'failure' AND timestamp >= ? AND timestamp < ?
 	`
 
 	var stats Stats
-	err := s.db.QueryRow(query, since).Scan(&stats.TotalAttempts, &stats.UniqueIPs, &stats.UniqueUsernames)
+	err := s.db.QueryRow(query, since, until).Scan(&stats.TotalAttempts, &stats.UniqueIPs, &stats.UniqueUsernames)
 	if err != nil {
 		return nil, err
 	}
 	return &stats, nil
 }
 
-func (s *Storage) GetTopUsernames(since time.Time, limit int) ([]UsernameCount, error) {
+func (s *Storage) GetTopUsernames(since, until time.Time, limit int) ([]UsernameCount, error) {
 	query := `
 		SELECT username, COUNT(*) as count
 		FROM ssh_events
-		WHERE event_type = 'failure' AND timestamp >= ?
+		WHERE event_type = 'failure' AND timestamp >= ? AND timestamp < ?
 		GROUP BY username
 		ORDER BY count DESC
 		LIMIT ?
 	`
 
-	rows, err := s.db.Query(query, since, limit)
+	rows, err := s.db.Query(query, since, until, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -247,17 +247,17 @@ func (s *Storage) GetTopUsernames(since time.Time, limit int) ([]UsernameCount, 
 	return results, rows.Err()
 }
 
-func (s *Storage) GetTopIPs(since time.Time, limit int) ([]IPCount, error) {
+func (s *Storage) GetTopIPs(since, until time.Time, limit int) ([]IPCount, error) {
 	query := `
 		SELECT ip, COALESCE(country, ''), COALESCE(city, ''), COUNT(*) as count
 		FROM ssh_events
-		WHERE event_type = 'failure' AND timestamp >= ?
+		WHERE event_type = 'failure' AND timestamp >= ? AND timestamp < ?
 		GROUP BY ip
 		ORDER BY count DESC
 		LIMIT ?
 	`
 
-	rows, err := s.db.Query(query, since, limit)
+	rows, err := s.db.Query(query, since, until, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -274,23 +274,23 @@ func (s *Storage) GetTopIPs(since time.Time, limit int) ([]IPCount, error) {
 	return results, rows.Err()
 }
 
-func (s *Storage) GetSuccessCount(since time.Time) (int, error) {
+func (s *Storage) GetSuccessCount(since, until time.Time) (int, error) {
 	var count int
 	err := s.db.QueryRow(`
 		SELECT COUNT(*) FROM ssh_events
-		WHERE event_type = 'success' AND timestamp >= ?
-	`, since).Scan(&count)
+		WHERE event_type = 'success' AND timestamp >= ? AND timestamp < ?
+	`, since, until).Scan(&count)
 	return count, err
 }
 
-// GetQuietSuccessCount counts successful logins since since whose alert was
-// suppressed by the quiet list.
-func (s *Storage) GetQuietSuccessCount(since time.Time) (int, error) {
+// GetQuietSuccessCount counts successful logins in [since, until) whose alert
+// was suppressed by the quiet list.
+func (s *Storage) GetQuietSuccessCount(since, until time.Time) (int, error) {
 	var count int
 	err := s.db.QueryRow(`
 		SELECT COUNT(*) FROM ssh_events
-		WHERE event_type = 'success' AND quiet_label IS NOT NULL AND timestamp >= ?
-	`, since).Scan(&count)
+		WHERE event_type = 'success' AND quiet_label IS NOT NULL AND timestamp >= ? AND timestamp < ?
+	`, since, until).Scan(&count)
 	return count, err
 }
 

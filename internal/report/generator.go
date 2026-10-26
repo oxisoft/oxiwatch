@@ -26,30 +26,30 @@ func NewGenerator(storage *storage.Storage, serverName, currentVersion string) *
 
 func (g *Generator) GenerateDailyReport(date time.Time) (string, error) {
 	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
-	endOfDay := startOfDay.Add(24 * time.Hour)
-	_ = endOfDay
+	// AddDate, not Add(24h), so DST change days still end at midnight.
+	endOfDay := startOfDay.AddDate(0, 0, 1)
 
-	stats, err := g.storage.GetFailedStats(startOfDay)
+	stats, err := g.storage.GetFailedStats(startOfDay, endOfDay)
 	if err != nil {
 		return "", err
 	}
 
-	topUsers, err := g.storage.GetTopUsernames(startOfDay, 10)
+	topUsers, err := g.storage.GetTopUsernames(startOfDay, endOfDay, 10)
 	if err != nil {
 		return "", err
 	}
 
-	topIPs, err := g.storage.GetTopIPs(startOfDay, 10)
+	topIPs, err := g.storage.GetTopIPs(startOfDay, endOfDay, 10)
 	if err != nil {
 		return "", err
 	}
 
-	successCount, err := g.storage.GetSuccessCount(startOfDay)
+	successCount, err := g.storage.GetSuccessCount(startOfDay, endOfDay)
 	if err != nil {
 		return "", err
 	}
 
-	quietCount, err := g.storage.GetQuietSuccessCount(startOfDay)
+	quietCount, err := g.storage.GetQuietSuccessCount(startOfDay, endOfDay)
 	if err != nil {
 		return "", err
 	}
