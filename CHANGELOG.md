@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Go 1.26 is now the minimum for building from source.
+- All dependencies upgraded to their latest releases: `maxminddb-golang` v1 to v2.8.0 (`net/netip` based lookups), `modernc.org/sqlite` 1.61.0, `prometheus/client_golang` 1.25.0, `golang.org/x/sys` 0.49.0, `google.golang.org/protobuf` 1.36.12.
+
 ## v0.4.3 - 2026-05-31
 
 ### Added

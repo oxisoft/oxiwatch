@@ -2,10 +2,10 @@ package geoip
 
 import (
 	"fmt"
-	"net"
+	"net/netip"
 	"time"
 
-	"github.com/oschwald/maxminddb-golang"
+	"github.com/oschwald/maxminddb-golang/v2"
 )
 
 type Location struct {
@@ -35,13 +35,13 @@ func NewResolver(dbPath string) (*Resolver, error) {
 }
 
 func (r *Resolver) Lookup(ipStr string) (*Location, error) {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
+	ip, err := netip.ParseAddr(ipStr)
+	if err != nil {
 		return &Location{}, nil
 	}
 
 	var record geoRecord
-	if err := r.db.Lookup(ip, &record); err != nil {
+	if err := r.db.Lookup(ip.Unmap()).Decode(&record); err != nil {
 		return nil, err
 	}
 
@@ -53,12 +53,12 @@ func (r *Resolver) Lookup(ipStr string) (*Location, error) {
 
 // LookupRaw returns the full decoded record for an IP, for troubleshooting.
 func (r *Resolver) LookupRaw(ipStr string) (map[string]any, error) {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
+	ip, err := netip.ParseAddr(ipStr)
+	if err != nil {
 		return nil, fmt.Errorf("invalid IP address: %q", ipStr)
 	}
 	var raw map[string]any
-	if err := r.db.Lookup(ip, &raw); err != nil {
+	if err := r.db.Lookup(ip.Unmap()).Decode(&raw); err != nil {
 		return nil, err
 	}
 	return raw, nil
