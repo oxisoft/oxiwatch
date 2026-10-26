@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## v0.4.3 - 2026-10-26
 
 ### Added
+- `timezone` config option (IANA name, e.g. `Europe/Zurich`). Notification timestamps now show the configured local time, with the UTC time in brackets for reference. Defaults to UTC, and the bracket is omitted when the configured zone is already UTC. Also settable via `OXIWATCH_TIMEZONE`.
 - **Quiet list** (`quiet_ips` in `config.json`): known addresses or CIDR ranges, optionally limited to one user and with an expiry date, whose successful logins send no instant alert. They are still stored and counted: the daily report and `stats today/report` show `Successful logins: N (M quiet)`, `stats logins` marks them `[quiet: <label>]`, and the new metric `oxiwatch_alerts_suppressed_total` counts them. Failed attempts are never affected.
 - `oxiwatch quiet list|add|remove|prune|check` manages the list. It edits only the `quiet_ips` key of `config.json` (rest of the file, permissions and owner untouched; atomic write, validated first).
 - The daemon reloads the quiet list without a restart: it watches `config.json` (5 s poll) and reloads on SIGHUP. The systemd unit gains `ExecReload`, so `systemctl reload oxiwatch` works. An invalid edit is logged and the previous list stays in force.
@@ -14,11 +15,6 @@
 ### Changed
 - Go 1.26 is now the minimum for building from source.
 - All dependencies upgraded to their latest releases: `maxminddb-golang` v1 to v2.8.0 (`net/netip` based lookups), `modernc.org/sqlite` 1.61.0, `prometheus/client_golang` 1.25.0, `golang.org/x/sys` 0.49.0, `google.golang.org/protobuf` 1.36.12.
-
-## v0.4.3 - 2026-05-31
-
-### Added
-- `timezone` config option (IANA name, e.g. `Europe/Zurich`). Notification timestamps now show the configured local time, with the UTC time in brackets for reference. Defaults to UTC, and the bracket is omitted when the configured zone is already UTC. Also settable via `OXIWATCH_TIMEZONE`.
 
 ## v0.4.2 - 2026-05-31
 

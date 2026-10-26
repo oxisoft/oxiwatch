@@ -107,7 +107,9 @@ func notifyDaemon() {
 	}
 	if exec.Command("systemctl", "kill", "--kill-whom=main", "--signal=HUP", "oxiwatch").Run() == nil {
 		fmt.Println("Running daemon reloaded the quiet list.")
+		return
 	}
+	fmt.Println("The running daemon picks up the change within 5 seconds.")
 }
 
 func quietList(configPath string) {
