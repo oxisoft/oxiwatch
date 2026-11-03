@@ -198,6 +198,19 @@
   footer { border-top: 1px solid var(--line); padding: 40px 0; color: var(--muted); text-align: center; font-size: .92rem; }
   footer a { color: var(--muted); }
   footer a:hover { color: var(--text); }
+  /* OxiSoft credit: a status pill with the green "online" dot of the product */
+  footer .credit { margin: 22px 0 0; }
+  footer .credit a {
+    display: inline-flex; align-items: center; gap: .3em;
+    padding: 9px 18px; border: 1px solid var(--accent); border-radius: 999px;
+    background: rgba(46,164,79,.12); color: var(--text); font-size: 1rem;
+  }
+  footer .credit a::before {
+    content: ""; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 0 3px rgba(46,164,79,.25); margin-right: 6px;
+  }
+  footer .credit strong { color: #fff; }
+  footer .credit a:hover { background: rgba(46,164,79,.24); color: #fff; text-decoration: none; }
 </style>
 </head>
 <body>
@@ -401,7 +414,8 @@
       <a href="https://github.com/oxisoft/oxiwatch/releases">Releases</a> ·
       <a href="https://github.com/oxisoft/oxiwatch#readme">Docs</a>
     </p>
-    <p>OxiWatch is free and open source under the MIT license. Built by <a href="https://oxisoft.io">OxiSoft</a>.</p>
+    <p>OxiWatch is free and open source under the MIT license.</p>
+    <p class="credit"><a href="https://oxisoft.io/">Developed by <strong>OxiSoft</strong></a></p>
   </div>
 </footer>
 
