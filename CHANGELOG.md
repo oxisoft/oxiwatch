@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.4.4 - 2026-11-11
+
+### Changed
+- Dependencies upgraded to their latest releases: `maxminddb-golang` v2.9.0, `modernc.org/sqlite` 1.62.0 (`modernc.org/libc` 1.81.0), `prometheus/common` 0.73.1, `golang.org/x/sys` 0.50.0.
+- Website footer credits OxiSoft.
+
 ## v0.4.3 - 2026-10-26
 
 ### Added
