@@ -3,7 +3,6 @@ module github.com/oxisoft/oxiwatch
 go 1.26.0
 
 require (
-	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/oschwald/maxminddb-golang/v2 v2.9.0
 	github.com/prometheus/client_golang v1.25.0
 	github.com/prometheus/client_model v0.6.3

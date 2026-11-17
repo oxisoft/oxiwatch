@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Telegram alerts go through a small built-in Bot API client (`sendMessage` over `net/http`) instead of the unmaintained `go-telegram-bot-api` library, which is removed. Tested against a fake Bot API server (success, API error, rate limit, non-JSON reply, connection error).
+- The daemon no longer calls Telegram's `getMe` at startup, so it starts even when Telegram is unreachable at boot; a wrong token shows up as a send error (check with `oxiwatch send-test`).
+
+### Security
+- Telegram connection errors no longer include the bot token (Go's HTTP errors quote the request URL, which holds the token); it is shown as `<redacted>`.
+
 ## v0.4.4 - 2026-11-11
 
 ### Changed
