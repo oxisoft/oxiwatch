@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## v0.4.5 - 2026-11-17
+
+### Added
+- Command documentation for `cmd/oxiwatch` (package doc + README), shown on pkg.go.dev.
+- Test coverage raised from 48.9% to 69.1%.
 
 ### Changed
 - Telegram alerts go through a small built-in Bot API client (`sendMessage` over `net/http`) instead of the unmaintained `go-telegram-bot-api` library, which is removed. Tested against a fake Bot API server (success, API error, rate limit, non-JSON reply, connection error).
