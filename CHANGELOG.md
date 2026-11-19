@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Added
+- Tests for the alert path: the journal reader (fixture `journalctl` output: accepted/failed/invalid user, IPv6, non-sshd and malformed lines) and the daemon end to end (journal -> store -> quiet list -> alert, root not covered by another user's quiet entry, clean shutdown). Journal coverage 29% -> 97%, daemon 37% -> 75%, total 69.1% -> 75.9%. No behaviour change.
+
 ### Changed
 - Dependencies upgraded: `maxminddb-golang` v2.9.1, `prometheus/common` 0.74.0. GeoIP lookups checked against a real GeoLite2-City database (IPv4 and IPv6).
 
