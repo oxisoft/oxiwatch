@@ -101,23 +101,23 @@ fail2ban blocks the brute-forcers; OxiWatch tells you the moment an authorized (
 Run the following command to install OxiWatch:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/oxisoft/oxiwatch/main/scripts/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/oxisoft/oxiwatch/main/scripts/install.sh | sudo bash
 ```
 
 **If you get a "Cannot read from terminal" error**, download and run separately:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/oxisoft/oxiwatch/main/scripts/install.sh -o /tmp/install.sh
-sudo bash /tmp/install.sh
+curl -fsSL https://raw.githubusercontent.com/oxisoft/oxiwatch/main/scripts/install.sh -o install.sh
+sudo bash install.sh
 ```
 
 The installer will:
 
-- Download the latest release for your architecture
+- Download the latest release for your architecture and verify it against the release's SHA-256 `checksums.txt` (it refuses to install on a mismatch)
 - Walk you through each notification channel (Telegram, Matrix, email) and prompt for the ones you choose to enable
 - Ask if you want GeoIP geolocation enabled
 - Ask whether to expose Prometheus metrics and on which address
-- Create the configuration file
+- Create the configuration file (`/etc/oxiwatch/config.json`, mode 600, owned by the `oxiwatch` service user; tokens and passwords are not shown while you type them)
 - Install and enable the systemd service
 
 After installation, check the service status:
