@@ -1,12 +1,12 @@
 # Changelog
 
-## Unreleased
+## v0.4.6 - 2026-11-23
 
 ### Added
 - Tests for the alert path: the journal reader (fixture `journalctl` output: accepted/failed/invalid user, IPv6, non-sshd and malformed lines) and the daemon end to end (journal -> store -> quiet list -> alert, root not covered by another user's quiet entry, clean shutdown). Journal coverage 29% -> 97%, daemon 37% -> 75%, total 69.1% -> 75.9%. No behaviour change.
 
 ### Changed
-- Dependencies upgraded: `maxminddb-golang` v2.9.1, `prometheus/common` 0.74.0. GeoIP lookups checked against a real GeoLite2-City database (IPv4 and IPv6).
+- Dependencies upgraded: `maxminddb-golang` v2.9.1, `prometheus/common` 0.74.0, `modernc.org/sqlite` v1.63.0. GeoIP lookups checked against a real GeoLite2-City database (IPv4 and IPv6).
 
 ### Security
 - `scripts/install.sh` hardened after a report in #4: the downloaded binary is verified against the release's `checksums.txt` before anything is installed (a mismatch aborts); downloads go to a private `mktemp -d` directory instead of a fixed `/tmp` path; `curl -fsSL` over HTTPS only, so an HTTP error page can no longer be installed as the binary, and the release tag is validated; `set -euo pipefail`; `config.json` is written with umask 077 and installed mode 600 in one step (no moment where it is world-readable), config dir 750 root:oxiwatch; Telegram bot token and Matrix access token are no longer echoed while typed; JSON escaping covers control characters and the hostname; the Matrix homeserver must be an `https://` URL; the service account is created with no home and `/usr/sbin/nologin`. The script passes shellcheck and was tested on Debian stable (fresh install, piped install, tampered checksum, invalid tag).
