@@ -210,8 +210,10 @@ channel is enabled by default.
 ```
 
 - **Telegram:** bot API, HTML-formatted messages.
-- **Matrix:** posts to the room via the client-server API (`m.room.message`), with both a
-  plain-text `body` and an HTML `formatted_body`.
+- **Matrix:** posts to the room via the client-server API (spec v3 `PUT .../send/m.room.message/{txnId}`,
+  a fresh transaction id per message, so a retried request is never posted twice), with both a
+  plain-text `body` and an HTML `formatted_body`. Messages are sent unencrypted: use a room
+  without end-to-end encryption.
 - **Email:** HTML mail over SMTP with STARTTLS on the submission port (587 by default).
   `email_to` is a list and may contain several recipients.
 
@@ -379,12 +381,13 @@ it with `sudo oxiwatch geoip update` and restart the service.
 OxiWatch posts to a Matrix room using the client-server API, so it works with any
 homeserver (Synapse, Dendrite, a hosted server, etc.).
 
-1. Create (or pick) a room and invite the account OxiWatch will post as.
+1. Create (or pick) a room and invite the account OxiWatch will post as. The room must be
+   **unencrypted**: OxiWatch sends plain events, which clients do not show in an encrypted room.
 2. Get the **room ID**. In Element: *Room settings → Advanced → Internal room ID* (looks like `!abcd1234:your.server`).
 3. Get an **access token** for the posting account. In Element: *Settings → Help & About → Advanced → Access Token*, or log in via the API:
    ```bash
-   curl -XPOST 'https://your.server/_matrix/client/r0/login' \
-     --data '{"type":"m.login.password","user":"oxiwatch","password":"..."}'
+   curl -XPOST 'https://your.server/_matrix/client/v3/login' \
+     --data '{"type":"m.login.password","identifier":{"type":"m.id.user","user":"oxiwatch"},"password":"..."}'
    ```
 4. Add `matrix_homeserver` (e.g. `https://your.server`), `matrix_room_id`, and `matrix_access_token` to your config.
 5. Test with `oxiwatch send-test`.

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Matrix notifier uses the spec v3 send endpoint (`PUT /_matrix/client/v3/rooms/{roomId}/send/m.room.message/{txnId}`) instead of the legacy `POST /r0/...` form, which spec-strict homeservers may reject. Each message carries a unique transaction id, so a network retry can no longer post an alert twice. Works with Synapse, Conduit/conduwuit, Dendrite and other spec-compliant homeservers.
+- README: the Matrix room must be unencrypted (OxiWatch sends plain events); the login example uses `/v3/login`.
+
 ## v0.4.6 - 2026-11-23
 
 ### Added

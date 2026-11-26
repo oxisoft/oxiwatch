@@ -26,7 +26,7 @@ func TestMatrixSend(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotMethod = r.Method
-		gotPath = r.RequestURI
+		gotPath = r.URL.EscapedPath()
 		gotRawURL = r.RequestURI
 		gotAuth = r.Header.Get("Authorization")
 
@@ -48,14 +48,18 @@ func TestMatrixSend(t *testing.T) {
 		t.Fatalf("Send() error: %v", err)
 	}
 
-	if gotMethod != http.MethodPost {
-		t.Errorf("method = %q, want POST", gotMethod)
+	if gotMethod != http.MethodPut {
+		t.Errorf("method = %q, want PUT", gotMethod)
 	}
 
-	// Path must contain the path-escaped room id.
-	escaped := url.PathEscape(roomID)
-	if !strings.Contains(gotPath, escaped) {
-		t.Errorf("path %q does not contain escaped room id %q", gotPath, escaped)
+	// Path must be the spec v3 send endpoint with the escaped room id and a
+	// non-empty transaction id.
+	prefix := "/_matrix/client/v3/rooms/" + url.PathEscape(roomID) + "/send/m.room.message/"
+	if !strings.HasPrefix(gotPath, prefix) {
+		t.Errorf("path %q does not start with %q", gotPath, prefix)
+	}
+	if txn := strings.TrimPrefix(gotPath, prefix); txn == "" || strings.Contains(txn, "/") {
+		t.Errorf("transaction id %q in path %q is empty or malformed", txn, gotPath)
 	}
 
 	// Authorization header must carry the bearer token.
@@ -152,5 +156,38 @@ func TestMatrixName(t *testing.T) {
 	}
 	if m.Name() != "matrix" {
 		t.Errorf("Name() = %q, want matrix", m.Name())
+	}
+}
+
+func TestMatrixSendDistinctTxnIDs(t *testing.T) {
+	const prefix = "/_matrix/client/v3/rooms/%21r:s/send/m.room.message/"
+	seen := map[string]bool{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := r.URL.EscapedPath()
+		if r.Method != http.MethodPut || !strings.HasPrefix(p, prefix) {
+			t.Errorf("unexpected request %s %s", r.Method, p)
+		}
+		seen[strings.TrimPrefix(p, prefix)] = true
+		w.Write([]byte(`{"event_id":"$x"}`))
+	}))
+	defer srv.Close()
+
+	m, err := NewMatrix(srv.URL, "!r:s", "tok")
+	if err != nil {
+		t.Fatalf("NewMatrix() error: %v", err)
+	}
+	const n = 5
+	for i := 0; i < n; i++ {
+		if err := m.Send(message("s", "x")); err != nil {
+			t.Fatalf("Send() error: %v", err)
+		}
+	}
+	if len(seen) != n {
+		t.Errorf("got %d distinct transaction ids for %d messages: %v", len(seen), n, seen)
+	}
+	for id := range seen {
+		if id == "" {
+			t.Error("empty transaction id")
+		}
 	}
 }

@@ -8,17 +8,31 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
+// txnCounter makes transaction ids unique even when two messages are sent in
+// the same nanosecond.
+var txnCounter atomic.Uint64
+
+// newTxnID returns a transaction id unique to this process run. Matrix
+// homeservers deduplicate retried PUTs with the same id per access token, so
+// a network retry can never post the same alert twice.
+func newTxnID() string {
+	return fmt.Sprintf("oxiwatch-%d-%d", time.Now().UnixNano(), txnCounter.Add(1))
+}
+
 // Matrix delivers notifications to a Matrix room via the client-server API.
-// It mirrors the proven request:
+// It uses the spec v3 send endpoint with a fresh transaction id per message:
 //
-//	POST {homeserver}/_matrix/client/r0/rooms/{roomID}/send/m.room.message?access_token=...
-//	{"msgtype":"m.text","body":"..."}
+//	PUT {homeserver}/_matrix/client/v3/rooms/{roomID}/send/m.room.message/{txnId}
+//	Authorization: Bearer <access token>
+//	{"msgtype":"m.text","body":"...","format":"org.matrix.custom.html","formatted_body":"..."}
 //
-// and additionally sends a formatted (HTML) body so the message renders with
-// the same markup as the other channels.
+// The formatted (HTML) body makes the message render with the same markup as
+// the other channels. Events are sent unencrypted, so the room must not have
+// end-to-end encryption enabled.
 type Matrix struct {
 	homeserver string
 	roomID     string
@@ -41,8 +55,8 @@ func NewMatrix(homeserver, roomID, token string) (*Matrix, error) {
 func (m *Matrix) Name() string { return "matrix" }
 
 func (m *Matrix) Send(msg Message) error {
-	endpoint := fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message",
-		m.homeserver, url.PathEscape(m.roomID))
+	endpoint := fmt.Sprintf("%s/_matrix/client/v3/rooms/%s/send/m.room.message/%s",
+		m.homeserver, url.PathEscape(m.roomID), url.PathEscape(newTxnID()))
 
 	payload := map[string]string{
 		"msgtype": "m.text",
@@ -63,7 +77,7 @@ func (m *Matrix) Send(msg Message) error {
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPut, endpoint, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
