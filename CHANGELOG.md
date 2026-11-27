@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.4.7 - 2026-11-28
 
 ### Changed
 - Matrix notifier uses the spec v3 send endpoint (`PUT /_matrix/client/v3/rooms/{roomId}/send/m.room.message/{txnId}`) instead of the legacy `POST /r0/...` form, which spec-strict homeservers may reject. Each message carries a unique transaction id, so a network retry can no longer post an alert twice. Works with Synapse, Conduit/conduwuit, Dendrite and other spec-compliant homeservers.
